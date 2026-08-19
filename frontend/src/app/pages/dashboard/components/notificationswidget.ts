@@ -1,80 +1,198 @@
-import { Component } from '@angular/core';
+// src/app/pages/dashboard/components/notificationswidget.ts
+import { Component, Input } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { ButtonModule } from 'primeng/button';
-import { MenuModule } from 'primeng/menu';
 
 @Component({
     standalone: true,
     selector: 'app-notifications-widget',
-    imports: [ButtonModule, MenuModule],
-    template: `<div class="card">
-        <div class="flex items-center justify-between mb-6">
-            <div class="font-semibold text-xl">Notifications</div>
-            <div>
-                <button pButton type="button" icon="pi pi-ellipsis-v" class="p-button-rounded p-button-text p-button-plain" (click)="menu.toggle($event)"></button>
-                <p-menu #menu [popup]="true" [model]="items"></p-menu>
+    imports: [CommonModule, ButtonModule],
+    template: `
+        <div class="notif-card">
+            <div class="notif-header">
+                <span class="notif-title">📋 Réservations récentes</span>
+                <span class="notif-count">{{ bookings.length }}</span>
+            </div>
+
+            <div class="notif-list">
+                <div class="notif-item" *ngFor="let booking of bookings">
+                    <div class="notif-icon" [ngClass]="booking.status">
+                        <span>{{ getIcon(booking.status) }}</span>
+                    </div>
+                    <div class="notif-content">
+                        <span class="notif-property">
+                            {{ booking.property_title || booking.property_id }}
+                        </span>
+                        <span class="notif-date">
+                            📅 {{ booking.start_date | date:'dd/MM/yyyy' }}
+                            →
+                            {{ booking.end_date | date:'dd/MM/yyyy' }}
+                        </span>
+                    </div>
+                    <span class="notif-status" [ngClass]="booking.status">
+                        {{ getStatusLabel(booking.status) }}
+                    </span>
+                </div>
+
+                <div *ngIf="bookings.length === 0" class="empty-state">
+                    <span class="empty-emoji">💭</span>
+                    <span class="empty-text">Aucune réservation récente</span>
+                </div>
             </div>
         </div>
+    `,
+    styles: [`
+        .notif-card {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+            height: 100%;
+        }
 
-        <span class="block text-muted-color font-medium mb-4">TODAY</span>
-        <ul class="p-0 mx-0 mt-0 mb-6 list-none">
-            <li class="flex items-center py-2 border-b border-surface">
-                <div class="w-12 h-12 flex items-center justify-center bg-blue-100 dark:bg-blue-400/10 rounded-full mr-4 shrink-0">
-                    <i class="pi pi-dollar text-xl! text-blue-500"></i>
-                </div>
-                <span class="text-surface-900 dark:text-surface-0 leading-normal"
-                    >Richard Jones
-                    <span class="text-surface-700 dark:text-surface-100">has purchased a blue t-shirt for <span class="text-primary font-bold">$79.00</span></span>
-                </span>
-            </li>
-            <li class="flex items-center py-2">
-                <div class="w-12 h-12 flex items-center justify-center bg-orange-100 dark:bg-orange-400/10 rounded-full mr-4 shrink-0">
-                    <i class="pi pi-download text-xl! text-orange-500"></i>
-                </div>
-                <span class="text-surface-700 dark:text-surface-100 leading-normal">Your request for withdrawal of <span class="text-primary font-bold">$2500.00</span> has been initiated.</span>
-            </li>
-        </ul>
+        .notif-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
 
-        <span class="block text-muted-color font-medium mb-4">YESTERDAY</span>
-        <ul class="p-0 m-0 list-none mb-6">
-            <li class="flex items-center py-2 border-b border-surface">
-                <div class="w-12 h-12 flex items-center justify-center bg-blue-100 dark:bg-blue-400/10 rounded-full mr-4 shrink-0">
-                    <i class="pi pi-dollar text-xl! text-blue-500"></i>
-                </div>
-                <span class="text-surface-900 dark:text-surface-0 leading-normal"
-                    >Keyser Wick
-                    <span class="text-surface-700 dark:text-surface-100">has purchased a black jacket for <span class="text-primary font-bold">$59.00</span></span>
-                </span>
-            </li>
-            <li class="flex items-center py-2 border-b border-surface">
-                <div class="w-12 h-12 flex items-center justify-center bg-pink-100 dark:bg-pink-400/10 rounded-full mr-4 shrink-0">
-                    <i class="pi pi-question text-xl! text-pink-500"></i>
-                </div>
-                <span class="text-surface-900 dark:text-surface-0 leading-normal"
-                    >Jane Davis
-                    <span class="text-surface-700 dark:text-surface-100">has posted a new questions about your product.</span>
-                </span>
-            </li>
-        </ul>
-        <span class="block text-muted-color font-medium mb-4">LAST WEEK</span>
-        <ul class="p-0 m-0 list-none">
-            <li class="flex items-center py-2 border-b border-surface">
-                <div class="w-12 h-12 flex items-center justify-center bg-green-100 dark:bg-green-400/10 rounded-full mr-4 shrink-0">
-                    <i class="pi pi-arrow-up text-xl! text-green-500"></i>
-                </div>
-                <span class="text-surface-900 dark:text-surface-0 leading-normal">Your revenue has increased by <span class="text-primary font-bold">%25</span>.</span>
-            </li>
-            <li class="flex items-center py-2 border-b border-surface">
-                <div class="w-12 h-12 flex items-center justify-center bg-purple-100 dark:bg-purple-400/10 rounded-full mr-4 shrink-0">
-                    <i class="pi pi-heart text-xl! text-purple-500"></i>
-                </div>
-                <span class="text-surface-900 dark:text-surface-0 leading-normal"><span class="text-primary font-bold">12</span> users have added your products to their wishlist.</span>
-            </li>
-        </ul>
-    </div>`
+        .notif-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2d1b69;
+        }
+
+        .notif-count {
+            background: #fef5f7;
+            color: #ff6b6b;
+            padding: 0.2rem 0.8rem;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .notif-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .notif-item {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 0.8rem 1rem;
+            border-radius: 12px;
+            background: #f8f9fa;
+            transition: all 0.2s ease;
+        }
+
+        .notif-item:hover {
+            background: #fef5f7;
+            transform: translateX(4px);
+        }
+
+        .notif-icon {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .notif-icon.confirmed {
+            background: #d1fae5;
+        }
+
+        .notif-icon.pending {
+            background: #fef3c7;
+        }
+
+        .notif-icon.cancelled {
+            background: #f1f2f6;
+        }
+
+        .notif-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .notif-property {
+            font-weight: 500;
+            color: #2d1b69;
+            font-size: 0.95rem;
+        }
+
+        .notif-date {
+            font-size: 0.75rem;
+            color: #888;
+        }
+
+        .notif-status {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.2rem 0.6rem;
+            border-radius: 50px;
+            flex-shrink: 0;
+        }
+
+        .notif-status.confirmed {
+            background: #d1fae5;
+            color: #00b894;
+        }
+
+        .notif-status.pending {
+            background: #fef3c7;
+            color: #f39c12;
+        }
+
+        .notif-status.cancelled {
+            background: #f1f2f6;
+            color: #636e72;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 2rem 0;
+        }
+
+        .empty-emoji {
+            font-size: 2.5rem;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .empty-text {
+            color: #888;
+            font-size: 0.95rem;
+        }
+    `]
 })
 export class NotificationsWidget {
-    items = [
-        { label: 'Add New', icon: 'pi pi-fw pi-plus' },
-        { label: 'Remove', icon: 'pi pi-fw pi-trash' }
-    ];
+    @Input() bookings: any[] = [];
+
+    getStatusLabel(status: string): string {
+        const labels: Record<string, string> = {
+            'pending': '⏳ En attente',
+            'confirmed': '✅ Confirmée',
+            'cancelled': '❌ Annulée'
+        };
+        return labels[status] || status;
+    }
+
+    getIcon(status: string): string {
+        const icons: Record<string, string> = {
+            'pending': '⏳',
+            'confirmed': '✅',
+            'cancelled': '❌'
+        };
+        return icons[status] || '📋';
+    }
 }

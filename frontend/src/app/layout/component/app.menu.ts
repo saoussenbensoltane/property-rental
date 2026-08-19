@@ -29,7 +29,6 @@ export class AppMenu {
                     { label: 'Dashboard', icon: 'pi pi-fw pi-home', routerLink: ['/dashboard'] },
                     { label: 'Utilisateurs', icon: 'pi pi-fw pi-users', routerLink: ['/dashboard/users'] },
                     { label: 'Logements', icon: 'pi pi-fw pi-building', routerLink: ['/dashboard/properties'] },
-                    { label: 'Statistiques', icon: 'pi pi-fw pi-chart-bar', routerLink: ['/dashboard/stats'] }
                 ]
             },
             {

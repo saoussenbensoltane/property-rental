@@ -1,3 +1,4 @@
+// src/app/services/admin.ts
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -28,8 +29,9 @@ export class AdminService {
     constructor(private http: HttpClient) {}
 
     private authHeaders(): HttpHeaders {
+        const token = this.authService.getToken();
         return new HttpHeaders({
-            Authorization: `Bearer ${this.authService.getToken()}`
+            Authorization: `Bearer ${token}`
         });
     }
 
@@ -41,8 +43,15 @@ export class AdminService {
         return this.http.delete(`${this.apiUrl}/users/${userId}`, { headers: this.authHeaders() });
     }
 
+    // ✅ CORRECTION : Le rôle doit être dans le BODY, pas dans l'URL
     updateUserRole(userId: string, role: string): Observable<any> {
-        return this.http.put(`${this.apiUrl}/users/${userId}/role?role=${role}`, {}, { headers: this.authHeaders() });
+        // Envoyer le rôle dans le body comme attendu par le backend
+        const body = { role: role };
+        return this.http.put(
+            `${this.apiUrl}/users/${userId}/role`, 
+            body,  // 👈 BODY avec le rôle
+            { headers: this.authHeaders() }
+        );
     }
 
     getAllProperties(): Observable<any[]> {

@@ -2,7 +2,7 @@ import os
 import shutil
 import uuid
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Query
 from models import User, Property
 from schemas import PropertyCreate
 from auth import get_current_user, require_role
@@ -15,16 +15,22 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @router.get("/")
 async def list_properties(
-    location: Optional[str] = None,
-    type: Optional[str] = None,
-    price_min: Optional[float] = None,
-    price_max: Optional[float] = None
+    location: Optional[str] = Query(None, description="Filtrer par localisation (recherche partielle)"),
+    type: Optional[str] = Query(None, description="Filtrer par type (recherche partielle)"),
+    price_min: Optional[float] = Query(None, description="Prix minimum"),
+    price_max: Optional[float] = Query(None, description="Prix maximum")
 ):
     query = {}
+    
+    # 🔍 RECHERCHE PAR LOCALISATION (insensible à la casse et partielle)
     if location:
-        query["location"] = location
+        query["location"] = {"$regex": location, "$options": "i"}  # "i" = case insensitive
+    
+    # 🔍 RECHERCHE PAR TYPE (insensible à la casse et partielle)
     if type:
-        query["type"] = type
+        query["type"] = {"$regex": type, "$options": "i"}
+    
+    # 💰 FILTRE PAR PRIX
     if price_min is not None or price_max is not None:
         price_filter = {}
         if price_min is not None:
@@ -112,7 +118,11 @@ async def upload_image(
     if property.owner_id != str(current_user.id):
         raise HTTPException(403, "Ce n'est pas votre logement")
 
-    ext = file.filename.split(".")[-1]
+    # Vérifier l'extension
+    ext = file.filename.split(".")[-1].lower()
+    if ext not in ["jpg", "jpeg", "png", "gif", "webp"]:
+        raise HTTPException(400, "Format d'image non supporté")
+
     filename = f"{uuid.uuid4()}.{ext}"
     filepath = os.path.join(UPLOAD_DIR, filename)
 

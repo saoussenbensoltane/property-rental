@@ -1,101 +1,114 @@
-import { Component } from '@angular/core';
+// src/app/pages/dashboard/components/bestsellingwidget.ts
+import { Component, Input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ButtonModule } from 'primeng/button';
-import { MenuModule } from 'primeng/menu';
+import { ChartModule } from 'primeng/chart';
 
 @Component({
     standalone: true,
     selector: 'app-best-selling-widget',
-    imports: [CommonModule, ButtonModule, MenuModule],
-    template: ` <div class="card">
-        <div class="flex justify-between items-center mb-6">
-            <div class="font-semibold text-xl">Best Selling Products</div>
-            <div>
-                <button pButton type="button" icon="pi pi-ellipsis-v" class="p-button-rounded p-button-text p-button-plain" (click)="menu.toggle($event)"></button>
-                <p-menu #menu [popup]="true" [model]="items"></p-menu>
+    imports: [CommonModule, ChartModule],
+    template: `
+        <div class="chart-card">
+            <div class="chart-header">
+                <span class="chart-title">📊 Réservations par mois</span>
+                <span class="chart-subtitle">Évolution des réservations</span>
             </div>
+            <p-chart 
+                type="bar" 
+                [data]="chartData" 
+                [options]="chartOptions"
+                height="200px"
+            ></p-chart>
         </div>
-        <ul class="list-none p-0 m-0">
-            <li class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-                <div>
-                    <span class="text-surface-900 dark:text-surface-0 font-medium mr-2 mb-1 md:mb-0">Space T-Shirt</span>
-                    <div class="mt-1 text-muted-color">Clothing</div>
-                </div>
-                <div class="mt-2 md:mt-0 flex items-center">
-                    <div class="bg-surface-300 dark:bg-surface-500 rounded-border overflow-hidden w-40 lg:w-24" style="height: 8px">
-                        <div class="bg-orange-500 h-full" style="width: 50%"></div>
-                    </div>
-                    <span class="text-orange-500 ml-4 font-medium">%50</span>
-                </div>
-            </li>
-            <li class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-                <div>
-                    <span class="text-surface-900 dark:text-surface-0 font-medium mr-2 mb-1 md:mb-0">Portal Sticker</span>
-                    <div class="mt-1 text-muted-color">Accessories</div>
-                </div>
-                <div class="mt-2 md:mt-0 ml-0 md:ml-20 flex items-center">
-                    <div class="bg-surface-300 dark:bg-surface-500 rounded-border overflow-hidden w-40 lg:w-24" style="height: 8px">
-                        <div class="bg-cyan-500 h-full" style="width: 16%"></div>
-                    </div>
-                    <span class="text-cyan-500 ml-4 font-medium">%16</span>
-                </div>
-            </li>
-            <li class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-                <div>
-                    <span class="text-surface-900 dark:text-surface-0 font-medium mr-2 mb-1 md:mb-0">Supernova Sticker</span>
-                    <div class="mt-1 text-muted-color">Accessories</div>
-                </div>
-                <div class="mt-2 md:mt-0 ml-0 md:ml-20 flex items-center">
-                    <div class="bg-surface-300 dark:bg-surface-500 rounded-border overflow-hidden w-40 lg:w-24" style="height: 8px">
-                        <div class="bg-pink-500 h-full" style="width: 67%"></div>
-                    </div>
-                    <span class="text-pink-500 ml-4 font-medium">%67</span>
-                </div>
-            </li>
-            <li class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-                <div>
-                    <span class="text-surface-900 dark:text-surface-0 font-medium mr-2 mb-1 md:mb-0">Wonders Notebook</span>
-                    <div class="mt-1 text-muted-color">Office</div>
-                </div>
-                <div class="mt-2 md:mt-0 ml-0 md:ml-20 flex items-center">
-                    <div class="bg-surface-300 dark:bg-surface-500 rounded-border overflow-hidden w-40 lg:w-24" style="height: 8px">
-                        <div class="bg-green-500 h-full" style="width: 35%"></div>
-                    </div>
-                    <span class="text-primary ml-4 font-medium">%35</span>
-                </div>
-            </li>
-            <li class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-                <div>
-                    <span class="text-surface-900 dark:text-surface-0 font-medium mr-2 mb-1 md:mb-0">Mat Black Case</span>
-                    <div class="mt-1 text-muted-color">Accessories</div>
-                </div>
-                <div class="mt-2 md:mt-0 ml-0 md:ml-20 flex items-center">
-                    <div class="bg-surface-300 dark:bg-surface-500 rounded-border overflow-hidden w-40 lg:w-24" style="height: 8px">
-                        <div class="bg-purple-500 h-full" style="width: 75%"></div>
-                    </div>
-                    <span class="text-purple-500 ml-4 font-medium">%75</span>
-                </div>
-            </li>
-            <li class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-                <div>
-                    <span class="text-surface-900 dark:text-surface-0 font-medium mr-2 mb-1 md:mb-0">Robots T-Shirt</span>
-                    <div class="mt-1 text-muted-color">Clothing</div>
-                </div>
-                <div class="mt-2 md:mt-0 ml-0 md:ml-20 flex items-center">
-                    <div class="bg-surface-300 dark:bg-surface-500 rounded-border overflow-hidden w-40 lg:w-24" style="height: 8px">
-                        <div class="bg-teal-500 h-full" style="width: 40%"></div>
-                    </div>
-                    <span class="text-teal-500 ml-4 font-medium">%40</span>
-                </div>
-            </li>
-        </ul>
-    </div>`
-})
-export class BestSellingWidget {
-    menu = null;
+    `,
+    styles: [`
+        .chart-card {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+            margin: 0 1.5rem 1.5rem;
+        }
 
-    items = [
-        { label: 'Add New', icon: 'pi pi-fw pi-plus' },
-        { label: 'Remove', icon: 'pi pi-fw pi-trash' }
-    ];
+        .chart-header {
+            margin-bottom: 1rem;
+        }
+
+        .chart-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2d1b69;
+            display: block;
+        }
+
+        .chart-subtitle {
+            color: #888;
+            font-size: 0.9rem;
+        }
+    `]
+})
+export class BestSellingWidget implements OnInit {
+    @Input() bookingData: number[] = [];
+
+    chartData: any;
+    chartOptions: any;
+
+    ngOnInit() {
+        const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+
+        this.chartData = {
+            labels: months,
+            datasets: [
+                {
+                    label: '📅 Réservations',
+                    data: this.bookingData || Array(12).fill(0),
+                    backgroundColor: [
+                        'rgba(255, 107, 157, 0.6)',
+                        'rgba(255, 107, 157, 0.5)',
+                        'rgba(255, 107, 157, 0.4)',
+                        'rgba(255, 107, 157, 0.3)',
+                        'rgba(255, 107, 157, 0.5)',
+                        'rgba(255, 107, 157, 0.6)',
+                        'rgba(255, 107, 157, 0.7)',
+                        'rgba(255, 107, 157, 0.8)',
+                        'rgba(255, 107, 157, 0.6)',
+                        'rgba(255, 107, 157, 0.5)',
+                        'rgba(255, 107, 157, 0.4)',
+                        'rgba(255, 107, 157, 0.6)'
+                    ],
+                    borderColor: '#ff6b6b',
+                    borderWidth: 2,
+                    borderRadius: 8
+                }
+            ]
+        };
+
+        this.chartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    labels: {
+                        font: { family: 'Lato, sans-serif' },
+                        usePointStyle: true,
+                        pointStyle: 'circle'
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { 
+                        stepSize: 1,
+                        font: { family: 'Lato, sans-serif' }
+                    }
+                },
+                x: {
+                    ticks: {
+                        font: { family: 'Lato, sans-serif' }
+                    }
+                }
+            }
+        };
+    }
 }

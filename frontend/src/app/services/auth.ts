@@ -1,29 +1,49 @@
+// src/app/services/auth.ts
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 
-interface LoginResponse {
+// ============================================================
+// 📦 DTO - Correspond au backend (UserCreate, UserLogin)
+// ============================================================
+export interface RegisterRequest {
+    email: string;
+    password: string;
+    role: string;
+}
+
+export interface LoginRequest {
+    email: string;
+    password: string;
+}
+
+export interface AuthResponse {
     access_token: string;
     token_type: string;
     role: string;
     user_id: string;
 }
 
-interface ForgotPasswordResponse {
+export interface ForgotPasswordResponse {
     message: string;
     temp_password: string;
 }
 
+// ============================================================
+// 🎯 SERVICE AUTH
+// ============================================================
 @Injectable({
-  providedIn: 'root'
+    providedIn: 'root'
 })
 export class AuthService {
     private apiUrl = 'http://127.0.0.1:8000/auth';
 
     constructor(private http: HttpClient) {}
 
-    login(email: string, password: string, rememberMe: boolean = true): Observable<LoginResponse> {
-        return this.http.post<LoginResponse>(`${this.apiUrl}/login`, { email, password }).pipe(
+    // ✅ Login avec DTO LoginRequest
+    login(email: string, password: string, rememberMe: boolean = true): Observable<AuthResponse> {
+        const body: LoginRequest = { email, password };
+        return this.http.post<AuthResponse>(`${this.apiUrl}/login`, body).pipe(
             tap(response => {
                 const storage = rememberMe ? localStorage : sessionStorage;
                 storage.setItem('access_token', response.access_token);
@@ -34,8 +54,10 @@ export class AuthService {
         );
     }
 
-    register(email: string, password: string, role: string): Observable<LoginResponse> {
-        return this.http.post<LoginResponse>(`${this.apiUrl}/register`, { email, password, role }).pipe(
+    // ✅ Register avec DTO RegisterRequest
+    register(email: string, password: string, role: string): Observable<AuthResponse> {
+        const body: RegisterRequest = { email, password, role };
+        return this.http.post<AuthResponse>(`${this.apiUrl}/register`, body).pipe(
             tap(response => {
                 localStorage.setItem('access_token', response.access_token);
                 localStorage.setItem('role', response.role);
@@ -46,7 +68,8 @@ export class AuthService {
     }
 
     forgotPassword(email: string): Observable<ForgotPasswordResponse> {
-        return this.http.post<ForgotPasswordResponse>(`${this.apiUrl}/forgot-password`, { email });
+        const body = { email };
+        return this.http.post<ForgotPasswordResponse>(`${this.apiUrl}/forgot-password`, body);
     }
 
     isLoggedIn(): boolean {
