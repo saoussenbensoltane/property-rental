@@ -1,3 +1,4 @@
+// src/app/pages/add-property/add-property.ts
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -24,11 +25,11 @@ interface ImagePreview {
     selector: 'app-add-property',
     standalone: true,
     imports: [
-        CommonModule, 
-        FormsModule, 
-        InputTextModule, 
-        InputNumberModule, 
-        TextareaModule, 
+        CommonModule,
+        FormsModule,
+        InputTextModule,
+        InputNumberModule,
+        TextareaModule,
         ButtonModule,
         SelectModule,
         ToastModule,
@@ -59,7 +60,7 @@ interface ImagePreview {
             <!-- 📝 FORMULAIRE -->
             <div class="form-container">
                 <div class="form-card">
-                    <form (ngSubmit)="onSubmit()" #propertyForm="ngForm">
+                    <form #propertyForm="ngForm" (ngSubmit)="onSubmit()">
                         <!-- Titre -->
                         <div class="form-group">
                             <label class="form-label">
@@ -71,13 +72,19 @@ interface ImagePreview {
                                 name="title"
                                 #titleInput="ngModel"
                                 required
+                                minlength="3"
+                                maxlength="100"
                                 placeholder="Donnez un titre attractif à votre logement..."
                                 class="w-full"
                                 [ngClass]="{'ng-invalid ng-dirty': titleInput.invalid && titleInput.dirty}"
                             />
-                            <small class="form-hint">✨ Un bon titre attire plus de voyageurs</small>
+                            <small class="form-hint" *ngIf="!titleInput.invalid || !titleInput.dirty">
+                                ✨ 3 à 100 caractères
+                            </small>
                             <small class="form-error" *ngIf="titleInput.invalid && titleInput.dirty">
-                                ⚠️ Le titre est obligatoire
+                                <span *ngIf="titleInput.errors?.['required']">⚠️ Le titre est obligatoire</span>
+                                <span *ngIf="titleInput.errors?.['minlength']">⚠️ Minimum 3 caractères</span>
+                                <span *ngIf="titleInput.errors?.['maxlength']">⚠️ Maximum 100 caractères</span>
                             </small>
                         </div>
 
@@ -92,14 +99,20 @@ interface ImagePreview {
                                 name="description"
                                 #descInput="ngModel"
                                 required
+                                minlength="10"
+                                maxlength="2000"
                                 rows="4"
-                                placeholder="Décrivez votre logement en quelques mots... Qu'est-ce qui le rend unique ?"
+                                placeholder="Décrivez votre logement en quelques mots..."
                                 class="w-full"
                                 [ngClass]="{'ng-invalid ng-dirty': descInput.invalid && descInput.dirty}"
                             ></textarea>
-                            <small class="form-hint">💭 Soyez précis et mettez en valeur les atouts de votre logement</small>
+                            <small class="form-hint" *ngIf="!descInput.invalid || !descInput.dirty">
+                                💭 10 à 2000 caractères
+                            </small>
                             <small class="form-error" *ngIf="descInput.invalid && descInput.dirty">
-                                ⚠️ La description est obligatoire
+                                <span *ngIf="descInput.errors?.['required']">⚠️ La description est obligatoire</span>
+                                <span *ngIf="descInput.errors?.['minlength']">⚠️ Minimum 10 caractères</span>
+                                <span *ngIf="descInput.errors?.['maxlength']">⚠️ Maximum 2000 caractères</span>
                             </small>
                         </div>
 
@@ -116,13 +129,17 @@ interface ImagePreview {
                                 mode="currency" 
                                 currency="TND" 
                                 [min]="0"
+                                [max]="99999999"
                                 placeholder="ex: 120"
                                 styleClass="w-full"
                                 [ngClass]="{'ng-invalid ng-dirty': priceInput.invalid && priceInput.dirty}"
                             ></p-inputNumber>
-                            <small class="form-hint">💎 Un prix compétitif attire plus de réservations</small>
+                            <small class="form-hint" *ngIf="!priceInput.invalid || !priceInput.dirty">
+                                💎 Prix en TND
+                            </small>
                             <small class="form-error" *ngIf="priceInput.invalid && priceInput.dirty">
-                                ⚠️ Le prix est obligatoire
+                                <span *ngIf="priceInput.errors?.['required']">⚠️ Le prix est obligatoire</span>
+                                <span *ngIf="priceInput.errors?.['min']">⚠️ Le prix doit être supérieur à 0</span>
                             </small>
                         </div>
 
@@ -131,19 +148,25 @@ interface ImagePreview {
                             <label class="form-label">
                                 📍 Localisation <span class="required">*</span>
                             </label>
+                            <!-- ✅ CORRECTION : input SANS tag de fermeture -->
                             <input 
                                 pInputText 
                                 [(ngModel)]="location" 
                                 name="location"
                                 #locInput="ngModel"
                                 required
-                                placeholder="ex: Tunis, Sousse, Yasmine Hammamet..."
+                                minlength="2"
+                                maxlength="100"
+                                placeholder="ex: Tunis, Sousse..."
                                 class="w-full"
                                 [ngClass]="{'ng-invalid ng-dirty': locInput.invalid && locInput.dirty}"
                             />
-                            <small class="form-hint">🌍 Précisez la ville ou la région</small>
+                            <small class="form-hint" *ngIf="!locInput.invalid || !locInput.dirty">
+                                🌍 2 à 100 caractères
+                            </small>
                             <small class="form-error" *ngIf="locInput.invalid && locInput.dirty">
-                                ⚠️ La localisation est obligatoire
+                                <span *ngIf="locInput.errors?.['required']">⚠️ La localisation est obligatoire</span>
+                                <span *ngIf="locInput.errors?.['minlength']">⚠️ Minimum 2 caractères</span>
                             </small>
                         </div>
 
@@ -158,6 +181,8 @@ interface ImagePreview {
                                 #typeInput="ngModel"
                                 required
                                 [options]="typeOptions" 
+                                optionLabel="label"
+                                optionValue="value"
                                 placeholder="Choisissez un type..."
                                 styleClass="w-full"
                                 [ngClass]="{'ng-invalid ng-dirty': typeInput.invalid && typeInput.dirty}"
@@ -192,7 +217,6 @@ interface ImagePreview {
                                 </div>
                             </div>
                             
-                            <!-- Aperçu des photos -->
                             <div class="preview-grid" *ngIf="imagePreviews.length > 0">
                                 <div class="preview-item" *ngFor="let img of imagePreviews; let i = index">
                                     <img [src]="img.previewUrl" alt="Aperçu" />
@@ -206,14 +230,12 @@ interface ImagePreview {
                             </small>
                         </div>
 
-                        <!-- Message d'erreur -->
                         @if (errorMessage) {
                             <div class="error-box">
                                 <span>😊 {{ errorMessage }}</span>
                             </div>
                         }
 
-                        <!-- Bouton de soumission -->
                         <div class="form-actions">
                             <button type="button" class="btn-cancel" (click)="cancel()">
                                 ❌ Annuler
@@ -235,7 +257,6 @@ interface ImagePreview {
             padding: 0 1.5rem 2rem;
         }
 
-        /* 🌟 EN-TÊTE */
         .page-header {
             background: linear-gradient(135deg, #fff5f5 0%, #ffe8f0 100%);
             border-radius: 20px;
@@ -296,7 +317,6 @@ interface ImagePreview {
             font-weight: 500;
         }
 
-        /* 📝 FORMULAIRE */
         .form-container {
             background: white;
             border-radius: 20px;
@@ -372,7 +392,6 @@ interface ImagePreview {
             margin-top: 0.3rem;
         }
 
-        /* 📸 UPLOAD */
         .upload-area {
             border: 2px dashed #d0d0d0;
             border-radius: 16px;
@@ -486,7 +505,6 @@ interface ImagePreview {
             transform: scale(1.1);
         }
 
-        /* ❌ ERREUR */
         .error-box {
             background: #fff5f5;
             border: 1px solid #ff6b6b;
@@ -497,7 +515,6 @@ interface ImagePreview {
             text-align: center;
         }
 
-        /* 🎯 BOUTONS */
         .form-actions {
             display: flex;
             gap: 1rem;
@@ -546,7 +563,6 @@ interface ImagePreview {
             cursor: not-allowed;
         }
 
-        /* 📱 RESPONSIVE */
         @media (max-width: 768px) {
             .add-property-container {
                 padding: 0 1rem 1rem;
@@ -679,24 +695,43 @@ export class AddProperty {
 
     onSubmit() {
         this.errorMessage = '';
+        this.loading = true;
 
-        if (!this.title || !this.description || !this.price || !this.location || !this.type) {
-            this.errorMessage = '💝 Merci de remplir tous les champs';
-            this.messageService.add({
-                severity: 'warn',
-                summary: '⚠️ Champs manquants',
-                detail: 'Veuillez remplir tous les champs obligatoires ✨'
-            });
+        if (!this.title || this.title.trim().length < 3) {
+            this.errorMessage = '📝 Le titre doit contenir au moins 3 caractères';
+            this.loading = false;
             return;
         }
 
-        this.loading = true;
+        if (!this.description || this.description.trim().length < 10) {
+            this.errorMessage = '📖 La description doit contenir au moins 10 caractères';
+            this.loading = false;
+            return;
+        }
+
+        if (!this.price || this.price <= 0) {
+            this.errorMessage = '💰 Le prix doit être supérieur à 0';
+            this.loading = false;
+            return;
+        }
+
+        if (!this.location || this.location.trim().length < 2) {
+            this.errorMessage = '📍 La localisation est obligatoire';
+            this.loading = false;
+            return;
+        }
+
+        if (!this.type) {
+            this.errorMessage = '🏷️ Le type de logement est obligatoire';
+            this.loading = false;
+            return;
+        }
 
         this.propertyService.create({
-            title: this.title,
-            description: this.description,
+            title: this.title.trim(),
+            description: this.description.trim(),
             price: this.price,
-            location: this.location,
+            location: this.location.trim(),
             type: this.type
         }).pipe(
             switchMap(property => {
@@ -712,25 +747,38 @@ export class AddProperty {
             })
         ).subscribe({
             next: () => {
+                this.loading = false;
                 this.messageService.add({
                     severity: 'success',
                     summary: '🎉 Super !',
                     detail: 'Votre logement a été publié avec succès ✨'
                 });
                 setTimeout(() => {
-                    this.router.navigate(['/properties']);
-                }, 1000);
+                    this.router.navigate(['/my-properties']);
+                }, 1500);
             },
             error: (err) => {
                 this.loading = false;
-                this.errorMessage = err.status === 403
-                    ? '🔑 Seuls les propriétaires (owner) peuvent ajouter un logement'
-                    : '😊 Erreur lors de la création du logement. Réessayez ?';
-                this.messageService.add({
-                    severity: 'error',
-                    summary: '😊 Oups !',
-                    detail: this.errorMessage
-                });
+                
+                if (err.status === 422) {
+                    const detail = err.error?.detail;
+                    if (Array.isArray(detail) && detail.length > 0) {
+                        const messages = detail.map((e: any) => {
+                            const field = e.loc?.join('.') || '';
+                            const msg = e.msg || '';
+                            return `${field}: ${msg}`;
+                        });
+                        this.errorMessage = '😊 ' + messages.join('. ');
+                    } else if (typeof detail === 'string') {
+                        this.errorMessage = '😊 ' + detail;
+                    } else {
+                        this.errorMessage = '😊 Veuillez vérifier vos informations';
+                    }
+                } else if (err.status === 403) {
+                    this.errorMessage = '🔑 Seuls les propriétaires (owner) peuvent ajouter un logement';
+                } else {
+                    this.errorMessage = '😊 Erreur lors de la création du logement. Réessayez ?';
+                }
             }
         });
     }

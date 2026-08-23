@@ -33,26 +33,20 @@ import { Router } from '@angular/router';
         <!-- 🌟 EN-TÊTE CUTE -->
         <div class="bookings-header">
             <div class="header-content">
-                <span class="header-emoji">📅</span>
-                <div>
-                    <h1 class="header-title">Mes réservations</h1>
-                    <p class="header-subtitle">✨ Gérez vos séjours de rêve en un clin d'œil</p>
+                <div class="header-left">
+                    <span class="header-emoji">📅</span>
+                    <div>
+                        <h1 class="header-title">Mes réservations</h1>
+                        <p class="header-subtitle">✨ Gérez vos séjours de rêve en un clin d'œil</p>
+                    </div>
                 </div>
-            </div>
-            
-            <!-- STATISTIQUES -->
-            <div class="stats-container">
-                <div class="stat-card">
-                    <span class="stat-number">{{ bookings().length }}</span>
-                    <span class="stat-label">🏠 Total</span>
-                </div>
-                <div class="stat-card confirmed">
-                    <span class="stat-number">{{ getConfirmedCount() }}</span>
-                    <span class="stat-label">✅ Confirmées</span>
-                </div>
-                <div class="stat-card pending">
-                    <span class="stat-number">{{ getPendingCount() }}</span>
-                    <span class="stat-label">⏳ En attente</span>
+                <div class="header-right">
+                    <span class="booking-count">📊 {{ bookings().length }} réservations</span>
+                    <div class="status-stats">
+                        <span class="stat-badge pending">⏳ {{ getStatusCount('pending') }}</span>
+                        <span class="stat-badge confirmed">✅ {{ getStatusCount('confirmed') }}</span>
+                        <span class="stat-badge cancelled">❌ {{ getStatusCount('cancelled') }}</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -93,7 +87,16 @@ import { Router } from '@angular/router';
                             <tr>
                                 <td class="property-cell">
                                     <span class="property-icon">🏠</span>
-                                    <span class="property-name">{{ booking.property_id }}</span>
+                                    <div class="property-info">
+                                        <!-- ✅ AFFICHER LE NOM DU LOGEMENT -->
+                                        <span class="property-name">
+                                            {{ booking.property_title || booking.property_id }}
+                                        </span>
+                                        <!-- ✅ AFFICHER LA LOCALISATION -->
+                                        <span class="property-location" *ngIf="booking.property_location">
+                                            📍 {{ booking.property_location }}
+                                        </span>
+                                    </div>
                                 </td>
                                 <td>
                                     <span class="date-badge">{{ booking.start_date | date: 'dd/MM/yyyy' }}</span>
@@ -102,7 +105,7 @@ import { Router } from '@angular/router';
                                     <span class="date-badge">{{ booking.end_date | date: 'dd/MM/yyyy' }}</span>
                                 </td>
                                 <td>
-                                    <span class="status-tag" [ngClass]="getStatusClass(booking.status)">
+                                    <span class="status-tag" [ngClass]="booking.status">
                                         {{ getStatusLabel(booking.status) }}
                                     </span>
                                 </td>
@@ -128,15 +131,22 @@ import { Router } from '@angular/router';
             background: linear-gradient(135deg, #fff5f5 0%, #ffe8f0 100%);
             border-radius: 20px;
             margin: 1.5rem;
-            padding: 2rem;
+            padding: 1.5rem 2rem;
             box-shadow: 0 4px 20px rgba(255, 107, 157, 0.12);
         }
 
         .header-content {
             display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .header-left {
+            display: flex;
             align-items: center;
             gap: 1rem;
-            margin-bottom: 1.5rem;
         }
 
         .header-emoji {
@@ -162,54 +172,48 @@ import { Router } from '@angular/router';
             margin: 0;
         }
 
-        /* 📊 STATISTIQUES */
-        .stats-container {
+        .header-right {
             display: flex;
+            align-items: center;
             gap: 1rem;
             flex-wrap: wrap;
         }
 
-        .stat-card {
+        .booking-count {
+            color: #555;
+            font-size: 0.9rem;
             background: white;
-            padding: 0.8rem 2rem;
-            border-radius: 14px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-            text-align: center;
-            flex: 1;
-            min-width: 100px;
-            transition: transform 0.2s ease;
+            padding: 0.4rem 1.2rem;
+            border-radius: 50px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            font-weight: 500;
         }
 
-        .stat-card:hover {
-            transform: translateY(-3px);
+        .status-stats {
+            display: flex;
+            gap: 0.5rem;
         }
 
-        .stat-card.confirmed {
-            border-left: 4px solid #00b894;
+        .stat-badge {
+            padding: 0.3rem 0.8rem;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 500;
         }
 
-        .stat-card.pending {
-            border-left: 4px solid #fdcb6e;
+        .stat-badge.pending {
+            background: #fef3c7;
+            color: #d97706;
         }
 
-        .stat-number {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: #2d1b69;
-            display: block;
-        }
-
-        .stat-card.confirmed .stat-number {
+        .stat-badge.confirmed {
+            background: #d1fae5;
             color: #00b894;
         }
 
-        .stat-card.pending .stat-number {
-            color: #fdcb6e;
-        }
-
-        .stat-label {
-            font-size: 0.85rem;
-            color: #888;
+        .stat-badge.cancelled {
+            background: #fee2e2;
+            color: #ef4444;
         }
 
         /* 📋 TABLEAU */
@@ -224,7 +228,6 @@ import { Router } from '@angular/router';
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
         }
 
-        /* Style PrimeNG Table */
         ::ng-deep .custom-table .p-datatable-wrapper {
             border-radius: 12px;
             overflow: hidden;
@@ -269,16 +272,33 @@ import { Router } from '@angular/router';
         .property-cell {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.8rem;
         }
 
         .property-icon {
-            font-size: 1.2rem;
+            font-size: 1.5rem;
+        }
+
+        .property-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
         }
 
         .property-name {
-            font-weight: 500;
+            font-weight: 600;
             color: #2d1b69;
+            font-size: 1rem;
+        }
+
+        .property-location {
+            font-size: 0.8rem;
+            color: #888;
+            background: #f5f5f5;
+            padding: 0.1rem 0.6rem;
+            border-radius: 12px;
+            display: inline-block;
+            width: fit-content;
         }
 
         .date-badge {
@@ -290,7 +310,7 @@ import { Router } from '@angular/router';
             display: inline-block;
         }
 
-        /* 🏷️ STATUTS PERSONNALISÉS */
+        /* 🏷️ STATUTS */
         .status-tag {
             padding: 0.3rem 1.2rem;
             border-radius: 50px;
@@ -299,19 +319,19 @@ import { Router } from '@angular/router';
             display: inline-block;
         }
 
-        .status-tag.confirmed {
-            background: linear-gradient(135deg, #00b894, #00a381);
-            color: white;
+        .status-tag.pending {
+            background: #fef3c7;
+            color: #d97706;
         }
 
-        .status-tag.pending {
-            background: linear-gradient(135deg, #fdcb6e, #f39c12);
-            color: white;
+        .status-tag.confirmed {
+            background: #d1fae5;
+            color: #00b894;
         }
 
         .status-tag.cancelled {
-            background: linear-gradient(135deg, #dfe6e9, #b2bec3);
-            color: #636e72;
+            background: #fee2e2;
+            color: #ef4444;
         }
 
         /* 🎨 ÉTAT VIDE */
@@ -376,17 +396,21 @@ import { Router } from '@angular/router';
                 font-size: 2.5rem;
             }
 
-            .stats-container {
-                gap: 0.5rem;
+            .header-content {
+                flex-direction: column;
+                align-items: flex-start;
             }
 
-            .stat-card {
-                padding: 0.5rem 1rem;
-                min-width: 70px;
+            .header-right {
+                width: 100%;
+                flex-direction: column;
+                align-items: flex-start;
             }
 
-            .stat-number {
-                font-size: 1.4rem;
+            .status-stats {
+                width: 100%;
+                justify-content: flex-start;
+                flex-wrap: wrap;
             }
 
             .table-container {
@@ -398,12 +422,28 @@ import { Router } from '@angular/router';
                 overflow-x: auto;
             }
 
-            .empty-state {
-                padding: 2rem 1rem;
+            ::ng-deep .custom-table .p-datatable-tbody > tr > td,
+            ::ng-deep .custom-table .p-datatable-thead > tr > th {
+                padding: 0.6rem 0.8rem;
+                font-size: 0.85rem;
             }
 
-            .empty-title {
-                font-size: 1.4rem;
+            .property-cell {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.3rem;
+            }
+
+            .property-icon {
+                font-size: 1.2rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .property-cell {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.2rem;
             }
         }
     `]
@@ -478,6 +518,10 @@ export class MyBookings {
 
     getStatusClass(status: string): string {
         return status;
+    }
+
+    getStatusCount(status: string): number {
+        return this.bookings().filter(b => b.status === status).length;
     }
 
     getConfirmedCount(): number {

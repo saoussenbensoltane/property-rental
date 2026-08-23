@@ -9,11 +9,12 @@ export interface BookingCreate {
     end_date: string;    // ISO string
 }
 
+// src/app/services/booking.ts
 export interface Booking {
     _id: string;
     property_id: string;
-    property_title?: string;
-    property_location?: string;
+    property_title?: string;      // ✅ AJOUT
+    property_location?: string;   // ✅ AJOUT
     user_id: string;
     start_date: string;
     end_date: string;

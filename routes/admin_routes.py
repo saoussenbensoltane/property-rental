@@ -123,6 +123,28 @@ async def admin_delete_property(
     return {"message": "Logement supprimé par l'administrateur"}
 
 
+# ==================== RÉSERVATIONS (VUE ADMIN) ====================
+
+@router.get("/bookings")
+async def list_all_bookings(current_user: User = Depends(require_role("admin"))):
+    """
+    Récupérer la liste de toutes les réservations
+    (Réservé aux administrateurs)
+    """
+    bookings = await Booking.find_all().to_list()
+    return [
+        {
+            "_id": str(b.id),
+            "property_id": b.property_id,
+            "user_id": b.user_id,
+            "start_date": b.start_date,
+            "end_date": b.end_date,
+            "status": b.status
+        }
+        for b in bookings
+    ]
+
+
 # ==================== STATISTIQUES / DASHBOARD ====================
 
 @router.get("/stats")

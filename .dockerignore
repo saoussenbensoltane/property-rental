@@ -1,0 +1,10 @@
+# .dockerignore (à la racine)
+frontend/node_modules
+frontend/dist
+backend/__pycache__
+backend/venv
+*.pyc
+.env
+.git
+.idea
+.vscode

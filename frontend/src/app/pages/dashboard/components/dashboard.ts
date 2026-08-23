@@ -1,3 +1,4 @@
+// src/app/pages/dashboard/dashboard.component.ts
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
@@ -7,17 +8,14 @@ import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { ChartModule } from 'primeng/chart';
-
+import { forkJoin } from 'rxjs';
 // Services
 import { AdminService } from '@/app/services/admin';
 import { PropertyService, Property } from '@/app/services/property';
 import { BookingService, Booking } from '@/app/services/booking';
 import { StatsWidget } from './statswidget';
-
 import { NotificationsWidget } from './notificationswidget';
-
 import { Header } from '@/app/shared/header';
-import { BestSellingWidget } from './bestsellingwidget';
 
 @Component({
     selector: 'app-dashboard',
@@ -31,7 +29,6 @@ import { BestSellingWidget } from './bestsellingwidget';
         ProgressBarModule,
         ChartModule,
         StatsWidget,
-        
         NotificationsWidget,
         Header
     ],
@@ -45,7 +42,6 @@ import { BestSellingWidget } from './bestsellingwidget';
             <div class="box box-header">
                 <div class="header-content">
                     <div class="header-left">
-                    
                         <span class="header-emoji">📊</span>
                         <div>
                             <h1 class="header-title">Tableau de Bord</h1>
@@ -502,57 +498,51 @@ export class Dashboard implements OnInit {
         };
     }
 
-    loadAllData() {
-        this.adminService.getUsers().subscribe({
-            next: (data) => {
-                this.users = data || [];
-                this.totalUsers = this.users.length;
-                this.totalOwners = this.users.filter(u => u.role === 'owner').length;
-                this.updateStats();
-            },
-            error: () => {
-                this.messageService.add({
-                    severity: 'error',
-                    summary: '😊 Oups !',
-                    detail: 'Impossible de charger les utilisateurs'
-                });
-            }
-        });
+   loadAllData() {
+    forkJoin({
+        users: this.adminService.getUsers(),
+        properties: this.propertyService.getAll(),
+        stats: this.adminService.getStats(),
+        bookings: this.adminService.getAllBookings()
+    }).subscribe({
+        next: ({ users, properties, stats, bookings }) => {
+            this.users = users || [];
+            this.totalUsers = this.users.length;
+            this.totalOwners = this.users.filter(u => u.role === 'owner').length;
 
-        this.propertyService.getAll().subscribe({
-            next: (data) => {
-                this.properties = data || [];
-                this.totalProperties = this.properties.length;
-                this.updateStats();
-            },
-            error: () => {
-                this.messageService.add({
-                    severity: 'error',
-                    summary: '😊 Oups !',
-                    detail: 'Impossible de charger les propriétés'
-                });
-            }
-        });
+            this.properties = properties || [];
+            this.totalProperties = this.properties.length;
 
-        this.bookingService.getMyBookings().subscribe({
-            next: (data) => {
-                this.bookings = data || [];
-                this.totalBookings = this.bookings.length;
-                this.pendingBookings = this.bookings.filter(b => b.status === 'pending').length;
-                this.confirmedBookings = this.bookings.filter(b => b.status === 'confirmed').length;
-                this.recentBookings = this.bookings.slice(0, 5);
-                this.updateStats();
-                this.updateChartData();
-            },
-            error: () => {
-                this.messageService.add({
-                    severity: 'error',
-                    summary: '😊 Oups !',
-                    detail: 'Impossible de charger les réservations'
-                });
-            }
-        });
-    }
+            this.totalBookings = stats.total_bookings;
+            this.pendingBookings = stats.pending_bookings;
+            this.confirmedBookings = stats.confirmed_bookings;
+
+            // 🔗 Cartes de correspondance pour enrichir les bookings
+            const propertyMap = new Map(this.properties.map(p => [p._id, p.title]));
+            const userMap = new Map(this.users.map(u => [u.id ?? u._id, u.email]));
+
+            this.bookings = (bookings || []).map(b => ({
+                ...b,
+                property_title: propertyMap.get(b.property_id) || 'Logement supprimé',
+                user_email: userMap.get(b.user_id) || 'Utilisateur inconnu'
+            }));
+
+            this.recentBookings = [...this.bookings]
+                .sort((a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime())
+                .slice(0, 5);
+
+            this.updateStats();
+            this.updateChartData();
+        },
+        error: () => {
+            this.messageService.add({
+                severity: 'error',
+                summary: '😊 Oups !',
+                detail: 'Impossible de charger les données du tableau de bord'
+            });
+        }
+    });
+}
 
     updateStats() {
         this.statsData = [

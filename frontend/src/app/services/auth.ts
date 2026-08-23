@@ -2,6 +2,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
+import { Router } from '@angular/router';  // ✅ AJOUT
 
 // ============================================================
 // 📦 DTO - Correspond au backend (UserCreate, UserLogin)
@@ -38,9 +39,12 @@ export interface ForgotPasswordResponse {
 export class AuthService {
     private apiUrl = 'http://127.0.0.1:8000/auth';
 
-    constructor(private http: HttpClient) {}
+    constructor(
+        private http: HttpClient,
+        private router: Router  // ✅ AJOUT
+    ) {}
 
-    // ✅ Login avec DTO LoginRequest
+    // ✅ Login avec DTO LoginRequest + Redirection
     login(email: string, password: string, rememberMe: boolean = true): Observable<AuthResponse> {
         const body: LoginRequest = { email, password };
         return this.http.post<AuthResponse>(`${this.apiUrl}/login`, body).pipe(
@@ -50,11 +54,14 @@ export class AuthService {
                 storage.setItem('role', response.role);
                 storage.setItem('email', email);
                 storage.setItem('user_id', response.user_id);
+                
+                // ✅ Redirection automatique selon le rôle
+                this.redirectAfterLogin(response.role);
             })
         );
     }
 
-    // ✅ Register avec DTO RegisterRequest
+    // ✅ Register avec DTO RegisterRequest + Redirection
     register(email: string, password: string, role: string): Observable<AuthResponse> {
         const body: RegisterRequest = { email, password, role };
         return this.http.post<AuthResponse>(`${this.apiUrl}/register`, body).pipe(
@@ -63,8 +70,22 @@ export class AuthService {
                 localStorage.setItem('role', response.role);
                 localStorage.setItem('email', email);
                 localStorage.setItem('user_id', response.user_id);
+                
+                // ✅ Redirection automatique selon le rôle
+                this.redirectAfterLogin(response.role);
             })
         );
+    }
+
+    // ✅ Méthode de redirection
+    private redirectAfterLogin(role: string): void {
+        if (role === 'owner') {
+            this.router.navigate(['/my-properties']);
+        } else if (role === 'admin') {
+            this.router.navigate(['/dashboard']);
+        } else {
+            this.router.navigate(['/properties']);
+        }
     }
 
     forgotPassword(email: string): Observable<ForgotPasswordResponse> {
@@ -101,5 +122,8 @@ export class AuthService {
         sessionStorage.removeItem('role');
         sessionStorage.removeItem('email');
         sessionStorage.removeItem('user_id');
+        
+        // ✅ Rediriger vers la page d'accueil après déconnexion
+        this.router.navigate(['/properties']);
     }
 }

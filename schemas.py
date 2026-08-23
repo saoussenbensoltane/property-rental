@@ -108,7 +108,6 @@ class PropertyCreate(BaseModel):
 
     @validator('title')
     def validate_title(cls, v):
-        """Valider que le titre n'est pas vide et est correctement formaté"""
         if v.strip() == '':
             raise ValueError('Le titre ne peut pas être vide')
         if len(v.strip()) < 3:
@@ -117,21 +116,18 @@ class PropertyCreate(BaseModel):
 
     @validator('description')
     def validate_description(cls, v):
-        """Valider que la description n'est pas vide"""
         if v.strip() == '':
             raise ValueError('La description ne peut pas être vide')
         return v.strip()
 
     @validator('location')
     def validate_location(cls, v):
-        """Valider que la localisation n'est pas vide"""
         if v.strip() == '':
             raise ValueError('La localisation ne peut pas être vide')
         return v.strip()
 
     @validator('price')
     def validate_price(cls, v):
-        """Valider que le prix est positif"""
         if v <= 0:
             raise ValueError('Le prix doit être supérieur à 0')
         return v
@@ -146,6 +142,8 @@ class PropertyOut(BaseModel):
     type: str
     owner_id: str
     images: list[str] = []
+    average_rating: float = 0  # ✅ AJOUT
+    review_count: int = 0      # ✅ AJOUT
 
 
 class PropertyUpdate(BaseModel):
@@ -176,22 +174,18 @@ class BookingCreate(BaseModel):
 
     @validator('start_date')
     def validate_start_date(cls, v):
-        """Valider que la date de départ n'est pas dans le passé"""
         if v.date() < datetime.now().date():
             raise ValueError('La date de départ ne peut pas être dans le passé')
         return v
 
     @validator('end_date')
     def validate_end_date(cls, v, values):
-        """Valider que la date d'arrivée est après la date de départ"""
-        if 'start_date' in values:
-            if v <= values['start_date']:
-                raise ValueError('La date d\'arrivée doit être après la date de départ')
+        if 'start_date' in values and v <= values['start_date']:
+            raise ValueError('La date d\'arrivée doit être après la date de départ')
         return v
 
     @validator('end_date')
     def validate_duration(cls, v, values):
-        """Valider que le séjour dure au moins 1 nuit"""
         if 'start_date' in values:
             diff = (v - values['start_date']).days
             if diff < 1:
@@ -199,16 +193,15 @@ class BookingCreate(BaseModel):
         return v
 
 
-# 👇 SCHÉMA POUR LES RÉSERVATIONS AVEC INFOS PROPRIÉTÉ
 class BookingOut(BaseModel):
     id: str
     property_id: str
-    property_title: str          # Nom du logement
-    property_location: str       # Localisation du logement
+    property_title: str
+    property_location: str
     user_id: str
     start_date: datetime
     end_date: datetime
-    status: str  # "pending", "confirmed", "cancelled"
+    status: str
 
 
 class BookingUpdateStatus(BaseModel):
@@ -218,6 +211,46 @@ class BookingUpdateStatus(BaseModel):
         description="Nouveau statut de la réservation",
         example="confirmed"
     )
+
+
+# ==================== AVIS / REVIEWS ==================== ✅ NOUVEAU
+class ReviewCreate(BaseModel):
+    rating: int = Field(
+        ..., 
+        ge=1, 
+        le=5,
+        description="Note de 1 à 5 étoiles",
+        example=5
+    )
+    comment: str = Field(
+        ..., 
+        min_length=3, 
+        max_length=500,
+        description="Commentaire sur le logement",
+        example="Magnifique séjour ! La villa est incroyable."
+    )
+
+    @validator('rating')
+    def validate_rating(cls, v):
+        if v < 1 or v > 5:
+            raise ValueError('La note doit être entre 1 et 5')
+        return v
+
+
+class ReviewOut(BaseModel):
+    id: str
+    property_id: str
+    user_id: str
+    user_email: str
+    rating: int
+    comment: str
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+
+class ReviewUpdate(BaseModel):
+    rating: Optional[int] = Field(None, ge=1, le=5)
+    comment: Optional[str] = Field(None, min_length=3, max_length=500)
 
 
 # ==================== ADMIN ====================
@@ -237,6 +270,7 @@ class StatsResponse(BaseModel):
     total_bookings: int
     pending_bookings: int
     confirmed_bookings: int
+    average_rating: float = 0  # ✅ AJOUT
 
 
 class UserOut(BaseModel):
@@ -254,7 +288,6 @@ class SearchParams(BaseModel):
 
     @validator('max_price')
     def validate_price_range(cls, v, values):
-        """Valider que max_price est supérieur à min_price"""
         if 'min_price' in values and values['min_price'] is not None:
             if v is not None and v < values['min_price']:
                 raise ValueError('Le prix maximum doit être supérieur au prix minimum')

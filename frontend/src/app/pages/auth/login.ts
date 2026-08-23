@@ -10,7 +10,7 @@ import { CheckboxModule } from 'primeng/checkbox';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { RippleModule } from 'primeng/ripple';
-import { AppFloatingConfigurator } from '../../layout/component/app.floatingconfigurator';
+import { Header } from '../../shared/header';
 import { AuthService } from '../../services/auth';
 
 @Component({
@@ -26,12 +26,12 @@ import { AuthService } from '../../services/auth';
         CheckboxModule,
         ToastModule,
         RippleModule,
-        AppFloatingConfigurator
+        Header
     ],
     providers: [MessageService],
     template: `
         <p-toast position="top-center"></p-toast>
-        <app-floating-configurator />
+        <app-header></app-header>
 
         <div class="login-container">
             <div class="login-card">
@@ -55,6 +55,10 @@ import { AuthService } from '../../services/auth';
                             class="w-full"
                             [ngClass]="{'ng-invalid ng-dirty': emailInput.invalid && emailInput.dirty}"
                         />
+                        <small class="form-error" *ngIf="emailInput.invalid && emailInput.dirty">
+                            <span *ngIf="emailInput.errors?.['required']">⚠️ Email is required</span>
+                            <span *ngIf="emailInput.errors?.['email']">⚠️ Please enter a valid email</span>
+                        </small>
                     </div>
 
                     <div class="form-group">
@@ -70,6 +74,9 @@ import { AuthService } from '../../services/auth';
                             [feedback]="false"
                             [ngClass]="{'ng-invalid ng-dirty': passwordInput.invalid && passwordInput.dirty}"
                         ></p-password>
+                        <small class="form-error" *ngIf="passwordInput.invalid && passwordInput.dirty">
+                            ⚠️ Password is required
+                        </small>
                     </div>
 
                     <div class="form-options">
@@ -103,7 +110,7 @@ import { AuthService } from '../../services/auth';
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
+            min-height: 80vh;
             padding: 2rem;
             background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%);
         }
@@ -127,6 +134,11 @@ import { AuthService } from '../../services/auth';
             display: block;
             margin-bottom: 0.5rem;
             animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
         }
 
         .header-title {
@@ -175,10 +187,6 @@ import { AuthService } from '../../services/auth';
             font-size: 0.9rem;
         }
 
-        .forgot-link:hover {
-            text-decoration: underline;
-        }
-
         ::ng-deep .form-group .p-inputtext,
         ::ng-deep .form-group .p-password {
             width: 100% !important;
@@ -190,6 +198,7 @@ import { AuthService } from '../../services/auth';
         ::ng-deep .form-group .p-inputtext:focus,
         ::ng-deep .form-group .p-password:focus {
             border-color: #ff6b6b !important;
+            box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.1) !important;
         }
 
         ::ng-deep .form-group .p-password .p-password-input {
@@ -223,6 +232,7 @@ import { AuthService } from '../../services/auth';
 
         .btn-submit:hover:not(:disabled) {
             transform: scale(1.02);
+            box-shadow: 0 6px 25px rgba(238, 90, 36, 0.4);
         }
 
         .btn-submit:disabled {
@@ -243,16 +253,15 @@ import { AuthService } from '../../services/auth';
             font-weight: 600;
         }
 
-        .register-link a:hover {
-            text-decoration: underline;
-        }
-
         @media (max-width: 480px) {
             .login-card {
                 padding: 1.5rem;
             }
             .header-title {
                 font-size: 1.5rem;
+            }
+            .header-emoji {
+                font-size: 2.5rem;
             }
         }
     `]
@@ -278,25 +287,31 @@ export class Login {
             return;
         }
 
+        // ✅ Le service gère la redirection automatiquement
         this.authService.login(this.email, this.password, this.rememberMe).subscribe({
             next: () => {
+                this.isLoading = false;
                 this.messageService.add({
                     severity: 'success',
                     summary: '🎉 Bienvenue !',
                     detail: 'Heureux de vous revoir ✨'
                 });
-                this.isLoading = false;
-                
-                const role = this.authService.getRole();
-                if (role === 'admin') {
-                    this.router.navigate(['/dashboard']);
-                } else {
-                    this.router.navigate(['/properties']);
-                }
+                // ❌ SUPPRIMER this.router.navigate(...)
+                // ✅ La redirection est gérée par le service AuthService
             },
             error: (err) => {
                 this.isLoading = false;
-                this.errorMessage = err.error?.detail || '😊 Email ou mot de passe incorrect';
+                
+                if (err.status === 422) {
+                    const errors = err.error?.detail || [];
+                    if (Array.isArray(errors) && errors.length > 0) {
+                        this.errorMessage = errors.map((e: any) => e.msg || e.message).join('. ');
+                    } else {
+                        this.errorMessage = '😊 Veuillez vérifier vos informations';
+                    }
+                } else {
+                    this.errorMessage = err.error?.detail || '😊 Email ou mot de passe incorrect';
+                }
             }
         });
     }

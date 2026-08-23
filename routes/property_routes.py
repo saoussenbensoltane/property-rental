@@ -21,16 +21,13 @@ async def list_properties(
     price_max: Optional[float] = Query(None, description="Prix maximum")
 ):
     query = {}
-    
-    # 🔍 RECHERCHE PAR LOCALISATION (insensible à la casse et partielle)
+
     if location:
-        query["location"] = {"$regex": location, "$options": "i"}  # "i" = case insensitive
-    
-    # 🔍 RECHERCHE PAR TYPE (insensible à la casse et partielle)
+        query["location"] = {"$regex": location, "$options": "i"}
+
     if type:
         query["type"] = {"$regex": type, "$options": "i"}
-    
-    # 💰 FILTRE PAR PRIX
+
     if price_min is not None or price_max is not None:
         price_filter = {}
         if price_min is not None:
@@ -40,6 +37,12 @@ async def list_properties(
         query["price"] = price_filter
 
     properties = await Property.find(query).to_list()
+    return properties
+
+
+@router.get("/mine/list")
+async def list_my_properties(current_user: User = Depends(require_role("owner"))):
+    properties = await Property.find(Property.owner_id == str(current_user.id)).to_list()
     return properties
 
 
@@ -118,7 +121,6 @@ async def upload_image(
     if property.owner_id != str(current_user.id):
         raise HTTPException(403, "Ce n'est pas votre logement")
 
-    # Vérifier l'extension
     ext = file.filename.split(".")[-1].lower()
     if ext not in ["jpg", "jpeg", "png", "gif", "webp"]:
         raise HTTPException(400, "Format d'image non supporté")

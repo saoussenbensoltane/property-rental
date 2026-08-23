@@ -87,16 +87,21 @@ import { Header } from '@/app/shared/header';
                             </td>
                             <td>
                                 <div class="action-buttons">
-                                    <p-button 
-                                        icon="pi pi-trash" 
-                                        severity="danger" 
-                                        size="small" 
-                                        [rounded]="true" 
-                                        [outlined]="true" 
-                                        (onClick)="confirmRemove(property)" 
-                                        pTooltip="Supprimer"
-                                        [style]="{ 'transition': 'all 0.3s ease' }"
-                                    ></p-button>
+                                    <!-- ✅ Vérifier que l'ID existe avant d'afficher le bouton -->
+                                    @if (property._id || property.id) {
+                                        <p-button 
+                                            icon="pi pi-trash" 
+                                            severity="danger" 
+                                            size="small" 
+                                            [rounded]="true" 
+                                            [outlined]="true" 
+                                            (onClick)="confirmRemove(property)" 
+                                            pTooltip="Supprimer"
+                                            [style]="{ 'transition': 'all 0.3s ease' }"
+                                        ></p-button>
+                                    } @else {
+                                        <span class="text-muted-color text-sm">⚠️ ID manquant</span>
+                                    }
                                 </div>
                             </td>
                         </tr>
@@ -190,7 +195,6 @@ import { Header } from '@/app/shared/header';
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
         }
 
-        /* Style PrimeNG Table */
         ::ng-deep .custom-table .p-datatable-wrapper {
             border-radius: 12px;
             overflow: hidden;
@@ -230,15 +234,6 @@ import { Header } from '@/app/shared/header';
             background: linear-gradient(135deg, #ff6b6b, #ee5a24);
             color: white;
             border-radius: 50%;
-        }
-
-        ::ng-deep .custom-table .p-paginator .p-paginator-pages .p-paginator-page {
-            border-radius: 50%;
-            transition: all 0.2s ease;
-        }
-
-        ::ng-deep .custom-table .p-paginator .p-paginator-pages .p-paginator-page:hover {
-            background: #fef5f7;
         }
 
         .property-cell {
@@ -322,6 +317,11 @@ import { Header } from '@/app/shared/header';
 
         ::ng-deep .action-buttons .p-button:hover {
             transform: scale(1.1);
+        }
+
+        .text-muted-color {
+            color: #888;
+            font-size: 0.8rem;
         }
 
         /* 🎨 ÉTAT VIDE */
@@ -418,9 +418,18 @@ export class AdminProperties {
     load() {
         this.adminService.getAllProperties().subscribe({
             next: (data) => {
-                this.properties.set(data);
+                // ✅ Log pour debug
+                console.log('📊 Propriétés chargées:', data);
+                
+                // ✅ S'assurer que chaque propriété a un _id
+                const properties = data.map(p => ({
+                    ...p,
+                    _id: p._id || p.id || p._id
+                }));
+                this.properties.set(properties);
             },
-            error: () => {
+            error: (err) => {
+                console.error('❌ Erreur chargement propriétés:', err);
                 this.messageService.add({
                     severity: 'error',
                     summary: '😊 Oups !',
@@ -431,6 +440,18 @@ export class AdminProperties {
     }
 
     confirmRemove(property: any) {
+        // ✅ Récupérer l'ID (peut être _id ou id)
+        const propertyId = property._id || property.id;
+        
+        if (!propertyId || propertyId === 'undefined' || propertyId === 'null' || propertyId === '') {
+            this.messageService.add({
+                severity: 'error',
+                summary: '😊 Oups !',
+                detail: 'Ce logement n\'a pas d\'ID valide'
+            });
+            return;
+        }
+
         this.confirmationService.confirm({
             message: `💭 Voulez-vous vraiment supprimer le logement "${property.title}" ?`,
             header: '🗑️ Confirmer la suppression',
@@ -439,11 +460,23 @@ export class AdminProperties {
             rejectLabel: '❤️ Annuler',
             acceptButtonStyleClass: 'p-button-danger p-button-rounded',
             rejectButtonStyleClass: 'p-button-text p-button-rounded',
-            accept: () => this.removeProperty(property._id, property.title)
+            accept: () => this.removeProperty(propertyId, property.title)
         });
     }
 
     removeProperty(propertyId: string, title: string) {
+        // ✅ Vérification supplémentaire
+        if (!propertyId || propertyId === 'undefined' || propertyId === 'null' || propertyId === '') {
+            this.messageService.add({
+                severity: 'error',
+                summary: '😊 Oups !',
+                detail: 'ID du logement invalide'
+            });
+            return;
+        }
+
+        console.log('🗑️ Suppression du logement ID:', propertyId);
+
         this.adminService.deleteProperty(propertyId).subscribe({
             next: () => {
                 this.messageService.add({
@@ -453,7 +486,8 @@ export class AdminProperties {
                 });
                 this.load();
             },
-            error: () => {
+            error: (err) => {
+                console.error('❌ Erreur suppression:', err);
                 this.messageService.add({
                     severity: 'error',
                     summary: '😊 Oups !',
@@ -470,6 +504,6 @@ export class AdminProperties {
             'maison': 'maison',
             'studio': 'studio'
         };
-        return types[type.toLowerCase()] || 'default';
+        return types[type?.toLowerCase()] || 'default';
     }
 }
