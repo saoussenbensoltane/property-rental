@@ -1,0 +1,107 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb
+  namespace: default
+  labels:
+    app: mongodb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongodb
+  template:
+    metadata:
+      labels:
+        app: mongodb
+    spec:
+      containers:
+      - name: mongodb
+        image: mongo:6
+        ports:
+        - containerPort: 27017
+          name: mongodb
+        env:
+        - name: MONGO_INITDB_ROOT_USERNAME
+          value: "admin"
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          value: "password123"
+        - name: MONGO_INITDB_DATABASE
+          value: "property_rental"
+        volumeMounts:
+        - name: mongodb-data
+          mountPath: /data/db
+        resources:
+          requests:
+            # ⚠️ AUGMENTÉ : 256Mi était trop juste, cause probable d'OOMKilled
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          exec:
+            command:
+            # ⚠️ CORRIGÉ : ajout des identifiants, sinon le ping échoue car l'auth est activée
+            - mongosh
+            - --username
+            - admin
+            - --password
+            - password123
+            - --authenticationDatabase
+            - admin
+            - --eval
+            - "db.adminCommand('ping')"
+          # ⚠️ AUGMENTÉ : laisse plus de temps à MongoDB pour démarrer avant le premier check
+          initialDelaySeconds: 45
+          periodSeconds: 15
+          timeoutSeconds: 10
+          failureThreshold: 5
+        readinessProbe:
+          exec:
+            command:
+            - mongosh
+            - --username
+            - admin
+            - --password
+            - password123
+            - --authenticationDatabase
+            - admin
+            - --eval
+            - "db.adminCommand('ping')"
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 10
+          failureThreshold: 5
+      volumes:
+      - name: mongodb-data
+        persistentVolumeClaim:
+          claimName: mongodb-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-service
+  namespace: default
+  labels:
+    app: mongodb
+spec:
+  selector:
+    app: mongodb
+  ports:
+  - port: 27017
+    targetPort: 27017
+    name: mongodb
+  type: ClusterIP
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongodb-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

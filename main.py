@@ -1,5 +1,5 @@
 # main.py
-from fastapi import FastAPI
+from fastapi import FastAPI, Response, Request
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from database import init_db
@@ -10,6 +10,8 @@ from routes.admin_routes import router as admin_router
 from routes.review_routes import router as review_router
 from fastapi.staticfiles import StaticFiles
 import os
+import time
+from prometheus_client import Counter, Histogram, generate_latest, REGISTRY
 
 # ✅ IMPORT THE AI ROUTER - Make sure this line exists
 from routes.ai_routes import router as ai_router
@@ -54,9 +56,37 @@ app.add_middleware(
     max_age=3600
 )
 
+# ✅ Métriques Prometheus
+REQUEST_COUNT = Counter(
+    "http_requests_total",
+    "Total HTTP requests",
+    ["method", "endpoint", "status"]
+)
+REQUEST_LATENCY = Histogram(
+    "http_request_duration_seconds",
+    "HTTP request latency",
+    ["method", "endpoint"]
+)
+
+@app.middleware("http")
+async def metrics_middleware(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    duration = time.time() - start_time
+    REQUEST_LATENCY.labels(
+        method=request.method,
+        endpoint=request.url.path
+    ).observe(duration)
+    REQUEST_COUNT.labels(
+        method=request.method,
+        endpoint=request.url.path,
+        status=response.status_code
+    ).inc()
+    return response
+
 # ✅ Middleware pour logger les requêtes
 @app.middleware("http")
-async def log_requests(request, call_next):
+async def log_requests(request: Request, call_next):
     print(f"📨 {request.method} {request.url.path}")
     response = await call_next(request)
     print(f"📤 {request.method} {request.url.path} - {response.status_code}")
@@ -90,6 +120,10 @@ async def health_check():
         "message": "✅ API is running"
     }
 
+@app.get("/metrics")
+async def get_metrics():
+    return Response(content=generate_latest(REGISTRY), media_type="text/plain")
+
 # ✅ Add a debug endpoint to list all routes
 @app.get("/routes")
 async def list_routes():
@@ -101,6 +135,7 @@ async def list_routes():
             "name": route.name,
             "methods": list(route.methods) if hasattr(route, 'methods') else []
         })
+
     return {
         "total_routes": len(routes),
         "routes": routes

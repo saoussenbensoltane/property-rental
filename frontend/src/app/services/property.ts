@@ -22,7 +22,8 @@ export interface Property {
 })
 export class PropertyService {
     // ✅ Use proxy path
-  private apiUrl = 'http://127.0.0.1:8000/properties';
+   private baseUrl = 'http://127.0.0.1:8000';
+  private apiUrl = `${this.baseUrl}/properties`;
 
     constructor(private http: HttpClient) {}
 
@@ -34,6 +35,12 @@ export class PropertyService {
         });
     }
 
+
+
+      getImageUrl(path: string | undefined | null): string {
+    if (!path) return '';
+    return path.startsWith('http') ? path : `${this.baseUrl}${path}`;
+  }
     getAll(): Observable<Property[]> {
         return this.http.get<Property[]>(`${this.apiUrl}/`);
     }

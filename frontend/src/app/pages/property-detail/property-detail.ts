@@ -62,7 +62,7 @@ import { PropertyService, Property } from '@/app/services/property';
                         styleClass="mb-6"
                     >
                         <ng-template let-image #item>
-                            <img [src]="image" class="carousel-image" />
+                            <img [src]="getImageUrl(image)" class="carousel-image" />
                         </ng-template>
                     </p-carousel>
                 } @else {
@@ -891,6 +891,11 @@ export class PropertyDetail implements OnInit {
             this.loadReviews(id);
             this.checkCanReview(id);
         }
+    }
+
+    // ✅ AJOUT — wrapper public pour que le template puisse construire l'URL complète des images
+    getImageUrl(path: string): string {
+        return this.propertyService.getImageUrl(path);
     }
 
     loadProperty(id: string) {

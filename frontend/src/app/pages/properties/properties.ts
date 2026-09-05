@@ -82,13 +82,13 @@ import { Header } from '@/app/shared/header';
                     <div class="property-card">
                         <p-card [header]="property.title" class="h-full">
                             @if (property.images && property.images.length > 0) {
-                                <img [src]="property.images[0]" class="w-full h-52 object-cover rounded-lg mb-4 property-image" />
-                            } @else {
-                                <div class="w-full h-52 bg-surface-200 dark:bg-surface-700 rounded-lg mb-4 flex items-center justify-center text-surface-500 property-placeholder">
-                                    <span>🏠</span>
-                                    <span class="ml-2">Pas de photo</span>
-                                </div>
-                            }
+    <img [src]="propertyService.getImageUrl(property.images[0])" class="w-full h-52 object-cover rounded-lg mb-4 property-image" />
+} @else {
+    <div class="w-full h-52 bg-surface-200 dark:bg-surface-700 rounded-lg mb-4 flex items-center justify-center text-surface-500 property-placeholder">
+        <span>🏠</span>
+        <span class="ml-2">Pas de photo</span>
+    </div>
+}
 
                             <div class="property-info">
                                 <div class="flex items-center gap-2 mb-2">

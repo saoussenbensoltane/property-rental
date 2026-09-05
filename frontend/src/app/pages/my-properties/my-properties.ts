@@ -76,8 +76,7 @@ import { Header } from '@/app/shared/header';
                         <div class="property-card">
                             <p-card [header]="property.title" class="h-full">
                                 @if (property.images && property.images.length > 0) {
-                                    <img [src]="property.images[0]" class="w-full h-52 object-cover rounded-lg mb-4 property-image" />
-                                } @else {
+<img [src]="propertyService.getImageUrl(property.images[0])" class="w-full h-52 object-cover rounded-lg mb-4 property-image" />                                } @else {
                                     <div class="w-full h-52 bg-surface-200 rounded-lg mb-4 flex items-center justify-center text-surface-500 property-placeholder">
                                         <span>🏠</span>
                                         <span class="ml-2">Pas de photo</span>
@@ -537,7 +536,7 @@ export class MyProperties {
             header: 'Confirmer la suppression',
             icon: 'pi pi-exclamation-triangle',
             acceptLabel: '🗑️ Supprimer',
-            rejectLabel: '❤️ Annuler',
+            rejectLabel: 'Annuler',
             acceptButtonStyleClass: 'p-button-danger p-button-rounded',
             rejectButtonStyleClass: 'p-button-text p-button-rounded',
             accept: () => {
