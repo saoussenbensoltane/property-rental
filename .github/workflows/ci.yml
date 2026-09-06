@@ -9,24 +9,43 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
-    # Ajoute cette ligne pour forcer Node.js 24
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-    
+
+    services:
+      mongodb:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ping:1})'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Setup Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
-    
+
     - name: Install dependencies
       run: |
         pip install -r requirements.txt
-        pip install pytest pytest-cov httpx
-    
+
+    - name: Start backend server
+      run: |
+        uvicorn main:app --host 0.0.0.0 --port 8000 &
+        sleep 5
+
+    - name: Wait for backend to be ready
+      run: |
+        for i in {1..15}; do
+          curl -sf http://localhost:8000/health && echo "Backend prêt !" && break
+          echo "En attente du backend... ($i/15)"
+          sleep 2
+        done
+
     - name: Run tests
       run: |
         pytest tests/ -v
