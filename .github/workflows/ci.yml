@@ -49,3 +49,43 @@ jobs:
     - name: Run tests
       run: |
         pytest tests/ -v
+
+  build-and-deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: self-hosted
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Générer un tag unique
+      id: tag
+      shell: pwsh
+      run: |
+        $tag = Get-Date -Format "yyyyMMddHHmmss"
+        echo "tag=$tag" >> $env:GITHUB_OUTPUT
+
+    - name: Build des images Docker
+      shell: pwsh
+      run: |
+        docker compose build frontend backend --no-cache
+
+    - name: Tag des images
+      shell: pwsh
+      run: |
+        docker tag firstprojectbackend-frontend:latest "firstprojectbackend-frontend:${{ steps.tag.outputs.tag }}"
+        docker tag firstprojectbackend-backend:latest "firstprojectbackend-backend:${{ steps.tag.outputs.tag }}"
+
+    - name: Déployer sur Kubernetes
+      shell: pwsh
+      run: |
+        kubectl set image deployment/frontend frontend="firstprojectbackend-frontend:${{ steps.tag.outputs.tag }}"
+        kubectl set image deployment/backend backend="firstprojectbackend-backend:${{ steps.tag.outputs.tag }}"
+
+    - name: Vérifier le rollout frontend
+      shell: pwsh
+      run: kubectl rollout status deployment/frontend
+
+    - name: Vérifier le rollout backend
+      shell: pwsh
+      run: kubectl rollout status deployment/backend
