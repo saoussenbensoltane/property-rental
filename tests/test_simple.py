@@ -4,6 +4,15 @@ import pytest
 class TestAPI:
     BASE_URL = "http://localhost:8000"
 
+    @classmethod
+    def setup_class(cls):
+        # Crée le compte de test avant les tests (ignore si déjà existant)
+        requests.post(f"{cls.BASE_URL}/auth/register", json={
+            "email": "monadmin@test.com",
+            "password": "Admin123!",
+            "name": "Mon Admin"
+        })
+
     def test_health_check(self):
         response = requests.get(f"{self.BASE_URL}/health")
         assert response.status_code == 200
