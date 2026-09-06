@@ -1,4 +1,4 @@
-name: CI - Tests
+name: CI - Tests et Analyse
 
 on:
   push:
@@ -23,6 +23,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Nécessaire pour SonarQube
 
     - name: Setup Python
       uses: actions/setup-python@v5
@@ -32,7 +34,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -r requirements.txt
-        pip install httpx
+        pip install pytest pytest-cov httpx
 
     - name: Start backend server
       run: |
@@ -47,9 +49,28 @@ jobs:
           sleep 2
         done
 
-    - name: Run tests
+    - name: Run tests with coverage
       run: |
-        pytest tests/ -v
+        pytest tests/ --cov=. --cov-report=xml --cov-report=html
+
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: coverage.xml
+
+    - name: SonarQube Scan
+      uses: SonarSource/sonarqube-scan-action@v4
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      with:
+        args: >
+          -Dsonar.projectKey=property-rental
+          -Dsonar.sources=.
+          -Dsonar.python.coverage.reportPaths=coverage.xml
+          -Dsonar.exclusions=**/tests/**,**/venv/**,**/node_modules/**,**/frontend/**
+          -Dsonar.python.version=3.11
 
   build-and-deploy:
     needs: test
