@@ -32,6 +32,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -r requirements.txt
+        pip install httpx
 
     - name: Start backend server
       run: |
@@ -60,32 +61,32 @@ jobs:
 
     - name: Générer un tag unique
       id: tag
-      shell: cmd
+      shell: powershell
       run: |
-        for /f %i in ('powershell -Command "Get-Date -Format yyyyMMddHHmmss"') do set TAG=%i
-        echo tag=%TAG% >> %GITHUB_OUTPUT%
+        $tag = Get-Date -Format "yyyyMMddHHmmss"
+        echo "tag=$tag" >> $env:GITHUB_OUTPUT
 
     - name: Build des images Docker
-      shell: cmd
+      shell: powershell
       run: |
         docker compose build frontend backend --no-cache
 
     - name: Tag des images
-      shell: cmd
+      shell: powershell
       run: |
-        docker tag firstprojectbackend-frontend:latest firstprojectbackend-frontend:%TAG%
-        docker tag firstprojectbackend-backend:latest firstprojectbackend-backend:%TAG%
+        docker tag firstprojectbackend-frontend:latest "firstprojectbackend-frontend:${{ steps.tag.outputs.tag }}"
+        docker tag firstprojectbackend-backend:latest "firstprojectbackend-backend:${{ steps.tag.outputs.tag }}"
 
     - name: Déployer sur Kubernetes
-      shell: cmd
+      shell: powershell
       run: |
-        kubectl set image deployment/frontend frontend=firstprojectbackend-frontend:%TAG%
-        kubectl set image deployment/backend backend=firstprojectbackend-backend:%TAG%
+        kubectl set image deployment/frontend frontend="firstprojectbackend-frontend:${{ steps.tag.outputs.tag }}"
+        kubectl set image deployment/backend backend="firstprojectbackend-backend:${{ steps.tag.outputs.tag }}"
 
     - name: Vérifier le rollout frontend
-      shell: cmd
+      shell: powershell
       run: kubectl rollout status deployment/frontend
 
     - name: Vérifier le rollout backend
-      shell: cmd
+      shell: powershell
       run: kubectl rollout status deployment/backend
