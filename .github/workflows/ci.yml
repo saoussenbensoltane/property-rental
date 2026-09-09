@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     services:
       mongodb:
@@ -32,16 +32,19 @@ jobs:
         python-version: '3.11'
 
     - name: Install dependencies
+      shell: bash
       run: |
         pip install -r requirements.txt
         pip install pytest pytest-cov httpx
 
     - name: Start backend server
+      shell: bash
       run: |
         uvicorn main:app --host 0.0.0.0 --port 8000 &
         sleep 5
 
     - name: Wait for backend to be ready
+      shell: bash
       run: |
         for i in {1..15}; do
           curl -sf http://localhost:8000/health && echo "Backend prêt !" && break
@@ -50,6 +53,7 @@ jobs:
         done
 
     - name: Run tests with coverage
+      shell: bash
       run: |
         pytest tests/ --cov=. --cov-report=xml --cov-report=html
 
@@ -59,11 +63,26 @@ jobs:
         name: coverage-report
         path: coverage.xml
 
+    - name: Démarrer le port-forward SonarQube
+      shell: powershell
+      run: |
+        Start-Process -NoNewWindow -FilePath "kubectl" -ArgumentList "port-forward svc/sonarqube 9000:9000 -n sonarqube"
+        Start-Sleep -Seconds 5
+
+    - name: Attendre que SonarQube soit prêt
+      shell: bash
+      run: |
+        for i in {1..30}; do
+          curl -sf http://localhost:9000/api/system/status && echo "SonarQube prêt !" && break
+          echo "En attente de SonarQube... ($i/30)"
+          sleep 3
+        done
+
     - name: SonarQube Scan
       uses: SonarSource/sonarqube-scan-action@v4
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        SONAR_HOST_URL: http://localhost:9000
       with:
         args: >
           -Dsonar.projectKey=property-rental
@@ -71,6 +90,12 @@ jobs:
           -Dsonar.python.coverage.reportPaths=coverage.xml
           -Dsonar.exclusions=**/tests/**,**/venv/**,**/node_modules/**,**/frontend/**
           -Dsonar.python.version=3.11
+
+    - name: Arrêter le port-forward SonarQube
+      if: always()
+      shell: powershell
+      run: |
+        Get-Process kubectl -ErrorAction SilentlyContinue | Stop-Process -Force
 
   build-and-deploy:
     needs: test
