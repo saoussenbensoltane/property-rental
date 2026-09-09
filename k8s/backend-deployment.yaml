@@ -33,7 +33,6 @@ spec:
           value: "30"
         - name: ENVIRONMENT
           value: "development"
-        # ⚠️ NOUVEAU : monte le volume persistant sur /app/uploads
         volumeMounts:
         - name: uploads-data
           mountPath: /app/uploads
@@ -56,7 +55,6 @@ spec:
             port: 8000
           initialDelaySeconds: 5
           periodSeconds: 5
-      # ⚠️ NOUVEAU : déclare le volume au niveau du pod
       volumes:
       - name: uploads-data
         persistentVolumeClaim:
@@ -78,7 +76,6 @@ spec:
     name: http
   type: ClusterIP
 ---
-# ⚠️ NOUVEAU : PersistentVolumeClaim pour les images uploadées
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:

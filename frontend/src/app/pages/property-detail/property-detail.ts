@@ -1,5 +1,5 @@
 // src/app/pages/property-detail/property-detail.ts
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterModule, Router } from '@angular/router';
@@ -18,6 +18,7 @@ import { Header } from '@/app/shared/header';
 import { BookingService } from '@/app/services/booking';
 import { AuthService } from '@/app/services/auth';
 import { PropertyService, Property } from '@/app/services/property';
+import * as L from 'leaflet';
 
 @Component({
     selector: 'app-property-detail',
@@ -103,6 +104,18 @@ import { PropertyService, Property } from '@/app/services/property';
                     💫 Réserver
                 </button>
                 <span class="owner-badge" *ngIf="isOwner()">👔 Votre logement</span>
+            </div>
+
+            <!-- 🗺️ LOCALISATION -->
+            <div class="property-map-section">
+                <h2 class="map-title">📍 Localisation</h2>
+                <div #mapContainer class="property-map"></div>
+                <button class="btn-directions" (click)="openInGoogleMaps()" *ngIf="hasCoordinates()">
+                    🗺️ Itinéraire sur Google Maps
+                </button>
+                <p class="map-fallback-note" *ngIf="!hasCoordinates()">
+                    📌 Position approximative basée sur la localisation indiquée — le propriétaire n'a pas encore précisé l'emplacement exact.
+                </p>
             </div>
 
             <!-- 📝 SECTION AVIS -->
@@ -375,6 +388,55 @@ import { PropertyService, Property } from '@/app/services/property';
             padding: 0.5rem 1.5rem;
             border-radius: 50px;
             font-weight: 600;
+        }
+
+        /* 🗺️ SECTION CARTE */
+        .property-map-section {
+            background: white;
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            margin-bottom: 2rem;
+        }
+
+        .map-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2d1b69;
+            margin: 0 0 1rem 0;
+        }
+
+        .property-map {
+            width: 100%;
+            height: 350px;
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .btn-directions {
+            display: inline-block;
+            padding: 0.6rem 1.8rem;
+            border: none;
+            border-radius: 50px;
+            background: linear-gradient(135deg, #4a90d9, #3b82f6);
+            color: white;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(59,130,246,0.3);
+        }
+
+        .btn-directions:hover {
+            transform: scale(1.03);
+            box-shadow: 0 6px 25px rgba(59,130,246,0.4);
+        }
+
+        .map-fallback-note {
+            color: #888;
+            font-size: 0.9rem;
+            margin: 0;
         }
 
         .reviews-section {
@@ -812,6 +874,10 @@ import { PropertyService, Property } from '@/app/services/property';
                 height: 250px;
             }
 
+            .property-map {
+                height: 250px;
+            }
+
             .reviews-section {
                 padding: 1.2rem;
             }
@@ -853,7 +919,9 @@ import { PropertyService, Property } from '@/app/services/property';
         }
     `]
 })
-export class PropertyDetail implements OnInit {
+export class PropertyDetail implements OnInit, AfterViewInit {
+    @ViewChild('mapContainer') mapContainer!: ElementRef;
+
     property = signal<Property | null>(null);
     reviews: Review[] = [];
     propertyId: string = '';
@@ -874,6 +942,8 @@ export class PropertyDetail implements OnInit {
     editReviewData = { rating: 0, comment: '' };
     editingReviewId: string | null = null;
 
+    private map: L.Map | null = null;
+
     private route = inject(ActivatedRoute);
     private router = inject(Router);
     private propertyService = inject(PropertyService);
@@ -893,9 +963,67 @@ export class PropertyDetail implements OnInit {
         }
     }
 
+    ngAfterViewInit() {
+        // On attend que la propriété soit chargée (signal asynchrone) avant d'initialiser la carte
+        const check = setInterval(() => {
+            const p = this.property();
+            if (p && this.mapContainer) {
+                clearInterval(check);
+                if (p.latitude != null && p.longitude != null) {
+                    this.initMap(p.latitude, p.longitude);
+                } else {
+                    this.geocodeAndShowMap(p.location);
+                }
+            }
+        }, 200);
+    }
+
     // ✅ AJOUT — wrapper public pour que le template puisse construire l'URL complète des images
     getImageUrl(path: string): string {
         return this.propertyService.getImageUrl(path);
+    }
+
+    hasCoordinates(): boolean {
+        const p = this.property();
+        return !!p && p.latitude != null && p.longitude != null;
+    }
+
+    private initMap(lat: number, lon: number) {
+        if (this.map) { this.map.remove(); }
+
+        this.map = L.map(this.mapContainer.nativeElement).setView([lat, lon], 15);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(this.map);
+
+        L.marker([lat, lon]).addTo(this.map)
+            .bindPopup(`<b>${this.property()!.title}</b>`)
+            .openPopup();
+
+        setTimeout(() => this.map?.invalidateSize(), 200);
+    }
+
+    private geocodeAndShowMap(location: string) {
+        const query = encodeURIComponent(location + ', Tunisie');
+        fetch(`https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`)
+            .then(res => res.json())
+            .then(results => {
+                if (results && results.length > 0) {
+                    const lat = parseFloat(results[0].lat);
+                    const lon = parseFloat(results[0].lon);
+                    this.initMap(lat, lon);
+                }
+            })
+            .catch(err => console.error('Erreur géocodage:', err));
+    }
+
+    openInGoogleMaps() {
+        const p = this.property();
+        if (!p?.latitude || !p?.longitude) return;
+        const url = `https://www.google.com/maps/dir/?api=1&destination=${p.latitude},${p.longitude}`;
+        window.open(url, '_blank');
     }
 
     loadProperty(id: string) {

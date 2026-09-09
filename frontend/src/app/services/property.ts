@@ -15,6 +15,8 @@ export interface Property {
     created_at: string;
     average_rating: number;   // ✅ snake_case to match backend
     review_count: number;     // ✅ snake_case to match backend
+    latitude?: number;        // ✅ AJOUT
+    longitude?: number;       // ✅ AJOUT
 }
 
 @Injectable({
@@ -22,7 +24,7 @@ export interface Property {
 })
 export class PropertyService {
     // ✅ Use proxy path
-   private baseUrl = 'http://127.0.0.1:8000';
+private baseUrl = 'http://localhost:8000';
   private apiUrl = `${this.baseUrl}/properties`;
 
     constructor(private http: HttpClient) {}

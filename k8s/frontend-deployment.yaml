@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: firstprojectbackend-frontend:latest
+        image: firstprojectbackend-frontend:latest   # use your latest tag
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 80
@@ -25,6 +25,8 @@ spec:
         env:
         - name: API_URL
           value: "http://backend-service:8000"
+        - name: MONGO_URI
+          value: "mongodb://admin:password123@mongodb-service:27017/property_rental?authSource=admin"
         resources:
           requests:
             memory: "128Mi"

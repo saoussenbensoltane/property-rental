@@ -1,5 +1,5 @@
 // src/app/pages/add-property/add-property.ts
-import { Component, inject } from '@angular/core';
+import { Component, inject, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { InputTextModule } from 'primeng/inputtext';
@@ -15,6 +15,7 @@ import { switchMap, catchError } from 'rxjs/operators';
 import { PropertyService } from '../../services/property';
 import { AuthService } from '../../services/auth';
 import { Header } from '@/app/shared/header';
+import * as L from 'leaflet';
 
 interface ImagePreview {
     file: File;
@@ -148,7 +149,6 @@ interface ImagePreview {
                             <label class="form-label">
                                 📍 Localisation <span class="required">*</span>
                             </label>
-                            <!-- ✅ CORRECTION : input SANS tag de fermeture -->
                             <input 
                                 pInputText 
                                 [(ngModel)]="location" 
@@ -167,6 +167,33 @@ interface ImagePreview {
                             <small class="form-error" *ngIf="locInput.invalid && locInput.dirty">
                                 <span *ngIf="locInput.errors?.['required']">⚠️ La localisation est obligatoire</span>
                                 <span *ngIf="locInput.errors?.['minlength']">⚠️ Minimum 2 caractères</span>
+                            </small>
+                        </div>
+
+                        <!-- 🗺️ POSITION EXACTE SUR LA CARTE -->
+                        <div class="form-group">
+                            <label class="form-label">
+                                🗺️ Position exacte sur la carte
+                            </label>
+                            <div class="map-search-row">
+                                <input
+                                    pInputText
+                                    [(ngModel)]="mapSearchQuery"
+                                    name="mapSearchQuery"
+                                    placeholder="Rechercher une adresse pour centrer la carte..."
+                                    class="w-full"
+                                    (keydown.enter)="$event.preventDefault(); searchAddress()"
+                                />
+                                <button type="button" class="btn-search-map" (click)="searchAddress()">
+                                    🔍
+                                </button>
+                            </div>
+                            <div #mapContainer class="add-property-map"></div>
+                            <small class="form-hint" *ngIf="latitude === null">
+                                📌 Cliquez sur la carte à l'endroit exact du logement (obligatoire pour l'itinéraire précis)
+                            </small>
+                            <small class="form-hint map-coords" *ngIf="latitude !== null && longitude !== null">
+                                ✅ Position choisie : {{ latitude!.toFixed(5) }}, {{ longitude!.toFixed(5) }}
                             </small>
                         </div>
 
@@ -385,11 +412,48 @@ interface ImagePreview {
             margin-top: 0.3rem;
         }
 
+        .map-coords {
+            color: #00b894;
+            font-weight: 600;
+        }
+
         .form-error {
             display: block;
             font-size: 0.8rem;
             color: #ff6b6b;
             margin-top: 0.3rem;
+        }
+
+        /* 🗺️ CARTE DE SÉLECTION */
+        .map-search-row {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.6rem;
+        }
+
+        .btn-search-map {
+            border: 2px solid #e8e8e8;
+            border-radius: 12px;
+            background: white;
+            padding: 0 1rem;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .btn-search-map:hover {
+            border-color: #ff6b6b;
+            background: #fff5f5;
+        }
+
+        .add-property-map {
+            width: 100%;
+            height: 300px;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 2px solid #e8e8e8;
+            cursor: crosshair;
         }
 
         .upload-area {
@@ -607,6 +671,10 @@ interface ImagePreview {
             .preview-grid {
                 grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
             }
+
+            .add-property-map {
+                height: 220px;
+            }
         }
 
         @media (max-width: 480px) {
@@ -624,7 +692,9 @@ interface ImagePreview {
         }
     `]
 })
-export class AddProperty {
+export class AddProperty implements AfterViewInit {
+    @ViewChild('mapContainer') mapContainer!: ElementRef;
+
     title = '';
     description = '';
     price: number | null = null;
@@ -633,6 +703,18 @@ export class AddProperty {
     errorMessage = '';
     loading = false;
     dragOver = false;
+
+    // 🗺️ Position GPS
+    mapSearchQuery = '';
+    latitude: number | null = null;
+    longitude: number | null = null;
+    private map: L.Map | null = null;
+    private marker: L.Marker | null = null;
+
+    // Centre par défaut : Tunisie
+    private readonly DEFAULT_LAT = 34.0;
+    private readonly DEFAULT_LNG = 9.5;
+    private readonly DEFAULT_ZOOM = 6;
 
     selectedFiles: File[] = [];
     imagePreviews: ImagePreview[] = [];
@@ -648,6 +730,76 @@ export class AddProperty {
     authService = inject(AuthService);
     router = inject(Router);
     private messageService = inject(MessageService);
+
+    ngAfterViewInit() {
+        this.initMap();
+    }
+
+    private initMap() {
+        this.map = L.map(this.mapContainer.nativeElement).setView(
+            [this.DEFAULT_LAT, this.DEFAULT_LNG],
+            this.DEFAULT_ZOOM
+        );
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(this.map);
+
+        this.map.on('click', (e: L.LeafletMouseEvent) => {
+            this.setMarker(e.latlng.lat, e.latlng.lng);
+        });
+
+        // Corrige un bug fréquent de Leaflet dans une carte cachée au chargement
+        setTimeout(() => this.map?.invalidateSize(), 200);
+    }
+
+    private setMarker(lat: number, lng: number) {
+        this.latitude = lat;
+        this.longitude = lng;
+
+        if (!this.map) return;
+
+        if (this.marker) {
+            this.marker.setLatLng([lat, lng]);
+        } else {
+            this.marker = L.marker([lat, lng], { draggable: true }).addTo(this.map);
+            this.marker.on('dragend', () => {
+                const pos = this.marker!.getLatLng();
+                this.latitude = pos.lat;
+                this.longitude = pos.lng;
+            });
+        }
+    }
+
+    searchAddress() {
+        if (!this.mapSearchQuery.trim()) return;
+
+        const query = encodeURIComponent(this.mapSearchQuery.trim());
+        fetch(`https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`)
+            .then(res => res.json())
+            .then(results => {
+                if (results && results.length > 0) {
+                    const lat = parseFloat(results[0].lat);
+                    const lon = parseFloat(results[0].lon);
+                    this.map?.setView([lat, lon], 15);
+                    this.setMarker(lat, lon);
+                } else {
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: '😊 Adresse introuvable',
+                        detail: 'Essayez une recherche plus précise, ou cliquez directement sur la carte'
+                    });
+                }
+            })
+            .catch(() => {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: '😊 Oups !',
+                    detail: 'Impossible de rechercher cette adresse pour le moment'
+                });
+            });
+    }
 
     onFilesSelected(event: Event) {
         const input = event.target as HTMLInputElement;
@@ -732,7 +884,9 @@ export class AddProperty {
             description: this.description.trim(),
             price: this.price,
             location: this.location.trim(),
-            type: this.type
+            type: this.type,
+            latitude: this.latitude ?? undefined,
+            longitude: this.longitude ?? undefined
         }).pipe(
             switchMap(property => {
                 if (this.selectedFiles.length === 0) {

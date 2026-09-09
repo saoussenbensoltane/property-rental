@@ -39,3 +39,5 @@ class TestAPI:
         }
         response = requests.post(f"{self.BASE_URL}/auth/login", json=login_data)
         assert response.status_code == 401
+
+        

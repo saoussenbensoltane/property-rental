@@ -22,9 +22,10 @@ class Property(Document):
     owner_id: str
     images: list[str] = []
     created_at: datetime = datetime.now()
-    average_rating: float = 0  # ✅ AJOUT
-    review_count: int = 0      # ✅ AJOUT
-
+    average_rating: float = 0  
+    review_count: int = 0      
+    latitude: Optional[float] = None   
+    longitude: Optional[float] = None  
     class Settings:
         name = "properties"
 

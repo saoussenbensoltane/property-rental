@@ -105,6 +105,20 @@ class PropertyCreate(BaseModel):
         description="Type de logement",
         example="villa"
     )
+    latitude: Optional[float] = Field(
+        None,
+        ge=-90,
+        le=90,
+        description="Latitude GPS exacte du logement",
+        example=36.4029
+    )
+    longitude: Optional[float] = Field(
+        None,
+        ge=-180,
+        le=180,
+        description="Longitude GPS exacte du logement",
+        example=10.6188
+    )
 
     @validator('title')
     def validate_title(cls, v):
@@ -142,8 +156,10 @@ class PropertyOut(BaseModel):
     type: str
     owner_id: str
     images: list[str] = []
-    average_rating: float = 0  # ✅ AJOUT
-    review_count: int = 0      # ✅ AJOUT
+    average_rating: float = 0
+    review_count: int = 0
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 
 class PropertyUpdate(BaseModel):
@@ -152,6 +168,8 @@ class PropertyUpdate(BaseModel):
     price: Optional[float] = Field(None, ge=0, le=99999999)
     location: Optional[str] = Field(None, min_length=2, max_length=100)
     type: Optional[str] = Field(None, pattern="^(appartement|villa|maison|studio)$")
+    latitude: Optional[float] = Field(None, ge=-90, le=90)
+    longitude: Optional[float] = Field(None, ge=-180, le=180)
 
 
 # ==================== RÉSERVATIONS ====================

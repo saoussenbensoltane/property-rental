@@ -37,8 +37,8 @@ import { AuthService } from '../../services/auth';
             <div class="login-card">
                 <div class="login-header">
                     <span class="header-emoji">🔐</span>
-                    <h1 class="header-title">Welcome back</h1>
-                    <p class="header-subtitle">Sign in to your account</p>
+                    <h1 class="header-title">Bon retour</h1>
+                    <p class="header-subtitle">Connectez-vous à votre compte</p>
                 </div>
 
                 <form #loginForm="ngForm" (ngSubmit)="onLogin()">
@@ -51,40 +51,40 @@ import { AuthService } from '../../services/auth';
                             #emailInput="ngModel"
                             required
                             email
-                            placeholder="Enter your email"
+                            placeholder="Entrez votre email"
                             class="w-full"
                             [ngClass]="{'ng-invalid ng-dirty': emailInput.invalid && emailInput.dirty}"
                         />
                         <small class="form-error" *ngIf="emailInput.invalid && emailInput.dirty">
-                            <span *ngIf="emailInput.errors?.['required']">⚠️ Email is required</span>
-                            <span *ngIf="emailInput.errors?.['email']">⚠️ Please enter a valid email</span>
+                            <span *ngIf="emailInput.errors?.['required']">⚠️ L'email est requis</span>
+                            <span *ngIf="emailInput.errors?.['email']">⚠️ Veuillez entrer un email valide</span>
                         </small>
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label">🔒 Password</label>
+                        <label class="form-label">🔒 Mot de passe</label>
                         <p-password 
                             [(ngModel)]="password" 
                             name="password"
                             #passwordInput="ngModel"
                             required
                             [toggleMask]="true"
-                            placeholder="Enter your password"
+                            placeholder="Entrez votre mot de passe"
                             styleClass="w-full"
                             [feedback]="false"
                             [ngClass]="{'ng-invalid ng-dirty': passwordInput.invalid && passwordInput.dirty}"
                         ></p-password>
                         <small class="form-error" *ngIf="passwordInput.invalid && passwordInput.dirty">
-                            ⚠️ Password is required
+                            ⚠️ Le mot de passe est requis
                         </small>
                     </div>
 
                     <div class="form-options">
                         <div class="remember-me">
                             <p-checkbox [(ngModel)]="rememberMe" name="rememberMe" binary="true" inputId="rememberMe"></p-checkbox>
-                            <label for="rememberMe">Remember me</label>
+                            <label for="rememberMe">Se souvenir de moi</label>
                         </div>
-                        <a routerLink="/auth/forgot-password" class="forgot-link">Forgot password?</a>
+                        <a routerLink="/auth/forgot-password" class="forgot-link">Mot de passe oublié ?</a>
                     </div>
 
                     @if (errorMessage) {
@@ -94,13 +94,13 @@ import { AuthService } from '../../services/auth';
                     }
 
                     <button type="submit" class="btn-submit" [disabled]="loginForm.invalid || isLoading">
-                        <span *ngIf="!isLoading">✨ Sign In</span>
-                        <span *ngIf="isLoading">⏳ Signing in...</span>
+                        <span *ngIf="!isLoading">✨ Se connecter</span>
+                        <span *ngIf="isLoading">⏳ Connexion en cours...</span>
                     </button>
                 </form>
 
                 <div class="register-link">
-                    Don't have an account? <a routerLink="/auth/register">Sign up</a>
+                    Vous n'avez pas de compte ? <a routerLink="/auth/register">S'inscrire</a>
                 </div>
             </div>
         </div>
@@ -287,7 +287,6 @@ export class Login {
             return;
         }
 
-        // ✅ Le service gère la redirection automatiquement
         this.authService.login(this.email, this.password, this.rememberMe).subscribe({
             next: () => {
                 this.isLoading = false;
@@ -296,8 +295,6 @@ export class Login {
                     summary: '🎉 Bienvenue !',
                     detail: 'Heureux de vous revoir ✨'
                 });
-                // ❌ SUPPRIMER this.router.navigate(...)
-                // ✅ La redirection est gérée par le service AuthService
             },
             error: (err) => {
                 this.isLoading = false;
