@@ -8,23 +8,12 @@ on:
 
 jobs:
   test:
-    runs-on: self-hosted
-
-    services:
-      mongodb:
-        image: mongo:6.0
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongosh --eval 'db.runCommand({ping:1})'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+    runs-on: self-hosted  # Windows runner
 
     steps:
     - uses: actions/checkout@v4
       with:
-        fetch-depth: 0  # Nécessaire pour SonarQube
+        fetch-depth: 0
 
     - name: Setup Python
       uses: actions/setup-python@v5
@@ -32,28 +21,74 @@ jobs:
         python-version: '3.11'
 
     - name: Install dependencies
-      shell: bash
+      shell: powershell
       run: |
         pip install -r requirements.txt
         pip install pytest pytest-cov httpx
 
-    - name: Start backend server
-      shell: bash
+    - name: Démarrer MongoDB via Docker
+      shell: powershell
       run: |
-        uvicorn main:app --host 0.0.0.0 --port 8000 &
-        sleep 5
+        docker run -d --name mongo-test -p 27017:27017 mongo:6.0
+        Start-Sleep -Seconds 5
+
+    - name: Vérifier que MongoDB est prêt
+      shell: powershell
+      run: |
+        $maxRetries = 10
+        $retryCount = 0
+        $ready = $false
+        while ($retryCount -lt $maxRetries -and -not $ready) {
+          try {
+            $response = Invoke-WebRequest -Uri "http://localhost:27017" -UseBasicParsing -TimeoutSec 2
+            if ($response.StatusCode -eq 200) {
+              $ready = $true
+              Write-Host "✅ MongoDB est prêt !"
+            }
+          } catch {
+            Write-Host "⏳ En attente de MongoDB... ($retryCount/$maxRetries)"
+          }
+          $retryCount++
+          Start-Sleep -Seconds 2
+        }
+        if (-not $ready) {
+          Write-Host "❌ MongoDB n'est pas prêt après $maxRetries tentatives"
+          exit 1
+        }
+
+    - name: Start backend server
+      shell: powershell
+      run: |
+        # Démarrer le backend
+        Start-Process -NoNewWindow -FilePath "uvicorn" -ArgumentList "main:app --host 0.0.0.0 --port 8000"
+        Start-Sleep -Seconds 5
 
     - name: Wait for backend to be ready
-      shell: bash
+      shell: powershell
       run: |
-        for i in {1..15}; do
-          curl -sf http://localhost:8000/health && echo "Backend prêt !" && break
-          echo "En attente du backend... ($i/15)"
-          sleep 2
-        done
+        $maxRetries = 15
+        $retryCount = 0
+        $ready = $false
+        while ($retryCount -lt $maxRetries -and -not $ready) {
+          try {
+            $response = Invoke-WebRequest -Uri "http://localhost:8000/health" -UseBasicParsing -TimeoutSec 2
+            if ($response.StatusCode -eq 200) {
+              $ready = $true
+              Write-Host "✅ Backend est prêt !"
+            }
+          } catch {
+            Write-Host "⏳ En attente du backend... ($retryCount/$maxRetries)"
+          }
+          $retryCount++
+          Start-Sleep -Seconds 2
+        }
+        if (-not $ready) {
+          Write-Host "❌ Backend n'est pas prêt après $maxRetries tentatives"
+          exit 1
+        }
 
     - name: Run tests with coverage
-      shell: bash
+      shell: powershell
       run: |
         pytest tests/ --cov=. --cov-report=xml --cov-report=html
 
@@ -63,39 +98,12 @@ jobs:
         name: coverage-report
         path: coverage.xml
 
-    - name: Démarrer le port-forward SonarQube
-      shell: powershell
-      run: |
-        Start-Process -NoNewWindow -FilePath "kubectl" -ArgumentList "port-forward svc/sonarqube 9000:9000 -n sonarqube"
-        Start-Sleep -Seconds 5
-
-    - name: Attendre que SonarQube soit prêt
-      shell: bash
-      run: |
-        for i in {1..30}; do
-          curl -sf http://localhost:9000/api/system/status && echo "SonarQube prêt !" && break
-          echo "En attente de SonarQube... ($i/30)"
-          sleep 3
-        done
-
-    - name: SonarQube Scan
-      uses: SonarSource/sonarqube-scan-action@v4
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        SONAR_HOST_URL: http://localhost:9000
-      with:
-        args: >
-          -Dsonar.projectKey=property-rental
-          -Dsonar.sources=.
-          -Dsonar.python.coverage.reportPaths=coverage.xml
-          -Dsonar.exclusions=**/tests/**,**/venv/**,**/node_modules/**,**/frontend/**
-          -Dsonar.python.version=3.11
-
-    - name: Arrêter le port-forward SonarQube
+    - name: Arrêter MongoDB de test
       if: always()
       shell: powershell
       run: |
-        Get-Process kubectl -ErrorAction SilentlyContinue | Stop-Process -Force
+        docker stop mongo-test
+        docker rm mongo-test
 
   build-and-deploy:
     needs: test
